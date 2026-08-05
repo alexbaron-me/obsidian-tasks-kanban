@@ -12,7 +12,11 @@ jobs:
 
         strategy:
             matrix:
-                node-version: [20.x, 22.x, 24.x]
+                # jsdom 30's bundled undici calls node:worker_threads.markAsUncloneable,
+                # which only exists from Node 22.1.0 onward, so Node 20.x fails at test-worker
+                # startup (not a code issue). Node 20.x stays in lint.yml's build since that
+                # workflow never loads jsdom.
+                node-version: [22.x, 24.x]
                 # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
         steps:
