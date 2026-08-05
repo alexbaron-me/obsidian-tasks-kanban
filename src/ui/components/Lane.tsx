@@ -17,6 +17,7 @@ export interface LaneProps {
 	clickAction: 'file' | 'modal' | 'preview' | 'none';
 	taskWriter: TaskWriter;
 	postponeField?: 'due' | 'scheduled';
+	globalFilterTag?: string;
 	collapseDefault: boolean;
 	onToggleDone: (task: Task) => void;
 	onEdit: (task: Task) => void;
@@ -60,6 +61,7 @@ export function Lane(props: LaneProps) {
 							clickAction={props.clickAction}
 							taskWriter={props.taskWriter}
 							postponeField={props.postponeField}
+							globalFilterTag={props.globalFilterTag}
 							onToggleDone={props.onToggleDone}
 							onEdit={props.onEdit}
 							onOpenFile={props.onOpenFile}
@@ -82,6 +84,7 @@ export function Lane(props: LaneProps) {
 							clickAction={props.clickAction}
 							taskWriter={props.taskWriter}
 							postponeField={props.postponeField}
+							globalFilterTag={props.globalFilterTag}
 							collapseDefault={props.collapseDefault}
 							onToggleDone={props.onToggleDone}
 							onEdit={props.onEdit}

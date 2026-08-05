@@ -9,6 +9,9 @@ export interface TasksPluginConfig {
 	taskFormat: TaskFormat;
 	setDoneDate: boolean;
 	setCancelledDate: boolean;
+	/** Tasks' "global filter" — a string (often a tag like "#task") every recognised task line
+	 * must contain. Empty string when unset. */
+	globalFilter: string;
 }
 
 const DEFAULT_CONFIG: TasksPluginConfig = {
@@ -16,6 +19,7 @@ const DEFAULT_CONFIG: TasksPluginConfig = {
 	taskFormat: 'tasksPluginEmoji',
 	setDoneDate: true,
 	setCancelledDate: false,
+	globalFilter: '',
 };
 
 interface RawStatus {
@@ -58,6 +62,7 @@ function parseSettingsObject(settings: unknown): TasksPluginConfig {
 		taskFormat?: unknown;
 		setDoneDate?: unknown;
 		setCancelledDate?: unknown;
+		globalFilter?: unknown;
 	};
 	const statuses = parseStatuses(s.statusSettings) ?? DEFAULT_STATUSES;
 	const taskFormat: TaskFormat = s.taskFormat === 'dataview' ? 'dataview' : 'tasksPluginEmoji';
@@ -67,6 +72,7 @@ function parseSettingsObject(settings: unknown): TasksPluginConfig {
 		setDoneDate: typeof s.setDoneDate === 'boolean' ? s.setDoneDate : DEFAULT_CONFIG.setDoneDate,
 		setCancelledDate:
 			typeof s.setCancelledDate === 'boolean' ? s.setCancelledDate : DEFAULT_CONFIG.setCancelledDate,
+		globalFilter: typeof s.globalFilter === 'string' ? s.globalFilter : DEFAULT_CONFIG.globalFilter,
 	};
 }
 

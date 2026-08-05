@@ -58,6 +58,29 @@ export class TasksBoardSettingsTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
+			.setName('Hide global filter tag')
+			.setDesc('Strip the tasks plugin\'s global filter tag from card descriptions and tag chips. Cosmetic only — the tag stays in the file.')
+			.addToggle((toggle) => {
+				toggle.setValue(settings.hideGlobalFilterTag);
+				toggle.onChange(async (value) => {
+					settings.hideGlobalFilterTag = value;
+					await this.deps.saveSettings();
+				});
+			});
+
+		new Setting(containerEl)
+			.setName('Global filter tag')
+			.setDesc('Seeded from the tasks plugin\'s own global filter. Leave blank if you don\'t use one.')
+			.addText((text) => {
+				text.setPlaceholder('#Task');
+				text.setValue(settings.globalFilterTag);
+				text.onChange(async (value) => {
+					settings.globalFilterTag = value.trim();
+					await this.deps.saveSettings();
+				});
+			});
+
+		new Setting(containerEl)
 			.setName('Defaults for boards and views')
 			.setDesc('The outermost level of the cascade (global → board → view). Boards and views can override any of these.')
 			.setHeading();

@@ -18,6 +18,7 @@ export interface ColumnProps {
 	clickAction: 'file' | 'modal' | 'preview' | 'none';
 	taskWriter: TaskWriter;
 	postponeField?: 'due' | 'scheduled';
+	globalFilterTag?: string;
 	onToggleDone: (task: Task) => void;
 	onEdit: (task: Task) => void;
 	onOpenFile: (task: Task) => void;
@@ -80,6 +81,7 @@ export function Column(props: ColumnProps) {
 					clickAction={props.clickAction}
 					taskWriter={props.taskWriter}
 					postponeField={props.postponeField}
+					globalFilterTag={props.globalFilterTag}
 					onToggleDone={props.onToggleDone}
 					onEdit={props.onEdit}
 					onOpenFile={props.onOpenFile}

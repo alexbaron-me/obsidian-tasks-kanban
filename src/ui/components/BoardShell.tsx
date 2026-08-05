@@ -103,6 +103,7 @@ export function BoardShell(props: BoardShellProps) {
 
 	const resolved = resolveSettings(props.globalSettings, boardFile.settings, view?.settings ?? {});
 	const accentRules = useMemo(() => compileAccentRules(props.globalSettings.accentRules), [props.globalSettings.accentRules]);
+	const globalFilterTag = props.globalSettings.hideGlobalFilterTag ? props.globalSettings.globalFilterTag : '';
 
 	const data = useMemo(() => {
 		if (!view) return null;
@@ -358,6 +359,7 @@ export function BoardShell(props: BoardShellProps) {
 							clickAction={resolved.clickAction}
 							taskWriter={props.taskWriter}
 							postponeField={resolved.postponeField}
+							globalFilterTag={globalFilterTag}
 							collapseDefault={resolved.laneCollapseDefault}
 							onToggleDone={(t) => void toggleDone(t)}
 							onEdit={(t) => void editTask(t)}
@@ -377,6 +379,7 @@ export function BoardShell(props: BoardShellProps) {
 							accent={matchAccent(accentRules, activeTask, ctx)}
 							clickAction={resolved.clickAction}
 							taskWriter={props.taskWriter}
+							globalFilterTag={globalFilterTag}
 							onToggleDone={() => {}}
 							onEdit={() => {}}
 							onOpenFile={() => {}}

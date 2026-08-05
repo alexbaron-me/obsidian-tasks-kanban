@@ -7,6 +7,7 @@ import type { Task, PriorityName } from '../../types/tasks';
 import type { ChipKind } from '../../types/board';
 import type { QueryContext } from '../../query/context';
 import { buildChips, isBlockedDimmed } from '../../board/chips';
+import { stripGlobalFilterTag } from '../../board/globalFilter';
 import type { AccentRule } from '../../settings/GlobalSettings';
 import { MarkdownText } from './MarkdownText';
 import type { TaskWriter } from '../../write/TaskWriter';
@@ -21,6 +22,9 @@ export interface CardProps {
 	taskWriter: TaskWriter;
 	/** Which date field postpone acts on (cascaded setting, default "due"). */
 	postponeField?: 'due' | 'scheduled';
+	/** Tasks' global filter tag, when the user wants it hidden from the rendered card. Cosmetic
+	 * only — never touches the underlying file. Empty/undefined disables stripping. */
+	globalFilterTag?: string;
 	onToggleDone: (task: Task) => void;
 	onEdit: (task: Task) => void;
 	onOpenFile: (task: Task) => void;
@@ -47,9 +51,14 @@ export function CardView(props: CardViewProps) {
 	const [editing, setEditing] = useState(false);
 	const [draft, setDraft] = useState(task.description);
 
-	const chips = buildChips(props.chips, task, props.ctx);
+	const chips = buildChips(props.chips, task, props.ctx).filter(
+		(chip) => !(chip.kind === 'tags' && chip.tag === props.globalFilterTag),
+	);
 	const dimmed = isBlockedDimmed(task, props.ctx.allTasks);
 	const isDone = task.status.type === 'DONE' || task.status.type === 'CANCELLED';
+	const displayDescription = props.globalFilterTag
+		? stripGlobalFilterTag(task.description, props.globalFilterTag)
+		: task.description;
 
 	function commitEdit() {
 		setEditing(false);
@@ -211,7 +220,7 @@ export function CardView(props: CardViewProps) {
 							setEditing(true);
 						}}
 					>
-						<MarkdownText app={props.app} markdown={task.description} sourcePath={task.file.path} />
+						<MarkdownText app={props.app} markdown={displayDescription} sourcePath={task.file.path} />
 					</div>
 				)}
 				<button
