@@ -16,6 +16,10 @@ const context = await esbuild.context({
 	},
 	entryPoints: ['src/main.ts'],
 	bundle: true,
+	alias: {
+		react: 'preact/compat',
+		'react-dom': 'preact/compat',
+	},
 	external: [
 		'obsidian',
 		'electron',
