@@ -1,114 +1,126 @@
-import {
-	Editor,
-	MarkdownView,
-	MarkdownFileInfo,
-	Modal,
-	Notice,
-	Plugin,
-} from 'obsidian';
-import {
-	DEFAULT_SETTINGS,
-	MyPluginSettings,
-	SampleSettingTab,
-} from './settings';
+import { Notice, Plugin, TFile, type WorkspaceLeaf } from 'obsidian';
+import { TasksCache } from './integration/TasksCache';
+import { TasksConfig } from './integration/TasksConfig';
+import { TasksApi, isTasksPluginEnabled } from './integration/TasksApi';
+import { BoardStore } from './model/BoardStore';
+import { bootstrapBoardFile, serializeBoardFile } from './model/schema';
+import { loadGlobalSettings, type GlobalSettings } from './settings/GlobalSettings';
+import { TasksBoardSettingsTab } from './settings/SettingsTab';
+import { BoardView, VIEW_TYPE_BOARD, type BoardViewDeps } from './ui/BoardView';
+import { registerBoardEmbed, unregisterBoardEmbed, createCodeblockProcessor, type EmbedDeps } from './ui/BoardEmbed';
 
-// Remember to rename these classes and interfaces!
+export default class TasksBoardPlugin extends Plugin {
+	globalSettings!: GlobalSettings;
+	tasksCache!: TasksCache;
+	tasksConfig!: TasksConfig;
+	tasksApi!: TasksApi;
+	boardStore!: BoardStore;
 
-export default class MyPlugin extends Plugin {
-	settings!: MyPluginSettings;
+	async onload(): Promise<void> {
+		this.tasksCache = new TasksCache(this.app);
+		this.tasksConfig = new TasksConfig(this.app);
+		this.tasksApi = new TasksApi(this.app);
+		this.boardStore = new BoardStore(this.app);
 
-	async onload() {
-		await this.loadSettings();
+		await this.tasksConfig.refresh();
+		const persisted: unknown = await this.loadData();
+		this.globalSettings = loadGlobalSettings(persisted, this.tasksConfig.get().taskFormat);
+		if (persisted === null || persisted === undefined) {
+			// First-ever load: persist the seeded format immediately so it's visible in
+			// data.json and never re-derived from Tasks again (§5.3).
+			await this.saveData(this.globalSettings);
+		}
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (_evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
+		this.tasksCache.start();
+		this.registerEvent(this.app.workspace.on('layout-change', () => void this.tasksConfig.refresh()));
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
+		const viewDeps: BoardViewDeps = {
+			app: this.app,
+			boardStore: this.boardStore,
+			tasksCache: this.tasksCache,
+			tasksConfig: this.tasksConfig,
+			tasksApi: this.tasksApi,
+			globalSettings: this.globalSettings,
+			saveGlobalSettings: () => this.saveSettings(),
+		};
 
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			},
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (
-				editor: Editor,
-				_ctx: MarkdownView | MarkdownFileInfo,
-			) => {
-				editor.replaceSelection('Sample editor command');
-			},
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView =
-					this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
+		this.registerView(VIEW_TYPE_BOARD, (leaf: WorkspaceLeaf) => new BoardView(leaf, viewDeps));
+		this.registerExtensions(['board'], VIEW_TYPE_BOARD);
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-				return false;
-			},
-		});
+		const embedDeps: EmbedDeps = viewDeps;
+		registerBoardEmbed(embedDeps);
+		this.registerMarkdownCodeBlockProcessor('board', createCodeblockProcessor(embedDeps));
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(activeDocument, 'click', (_evt: MouseEvent) => {
-			new Notice('Click');
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(
-			window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000),
+		this.addSettingTab(
+			new TasksBoardSettingsTab(this.app, this, {
+				getSettings: () => this.globalSettings,
+				saveSettings: () => this.saveSettings(),
+			}),
 		);
+
+		this.addCommand({
+			id: 'create-board',
+			name: 'Create new board',
+			callback: () => void this.createNewBoard(),
+		});
+
+		this.addCommand({
+			id: 'open-as-board',
+			name: 'Open current file as a board',
+			checkCallback: (checking) => {
+				const file = this.app.workspace.getActiveFile();
+				if (!file || file.extension !== 'board') return false;
+				if (!checking) void this.app.workspace.getLeaf(false).setViewState({ type: VIEW_TYPE_BOARD, state: { file: file.path } });
+				return true;
+			},
+		});
+
+		this.registerObsidianProtocolHandler('tasks-board', async (params) => {
+			const path = params['file'];
+			if (typeof path !== 'string') {
+				new Notice('Tasks board uri requires a "file" parameter');
+				return;
+			}
+			const leaf = this.app.workspace.getLeaf(false);
+			await leaf.setViewState({ type: VIEW_TYPE_BOARD, state: { file: path } });
+			this.app.workspace.setActiveLeaf(leaf);
+		});
 	}
 
-	onunload() {}
-
-	async loadSettings() {
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			(await this.loadData()) as Partial<MyPluginSettings>,
-		);
+	onunload(): void {
+		unregisterBoardEmbed({
+			app: this.app,
+			boardStore: this.boardStore,
+			tasksCache: this.tasksCache,
+			tasksConfig: this.tasksConfig,
+			tasksApi: this.tasksApi,
+			globalSettings: this.globalSettings,
+			saveGlobalSettings: () => this.saveSettings(),
+		});
+		this.tasksCache.stop();
+		void this.boardStore.flushAll();
 	}
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-}
-
-class SampleModal extends Modal {
-	onOpen() {
-		const { contentEl } = this;
-		contentEl.setText('Woah!');
+	async saveSettings(): Promise<void> {
+		await this.saveData(this.globalSettings);
 	}
 
-	onClose() {
-		const { contentEl } = this;
-		contentEl.empty();
+	private async createNewBoard(): Promise<void> {
+		if (!isTasksPluginEnabled(this.app)) {
+			new Notice('Tasks board needs the tasks plugin installed and enabled.');
+			return;
+		}
+		const statuses = this.tasksConfig.get().statuses;
+		const text = serializeBoardFile(bootstrapBoardFile(statuses));
+		let path = 'Untitled.board';
+		let n = 1;
+		while (this.app.vault.getFileByPath(path)) {
+			path = `Untitled ${n}.board`;
+			n++;
+		}
+		const file = await this.app.vault.create(path, text);
+		if (file instanceof TFile) {
+			await this.app.workspace.getLeaf(false).openFile(file);
+		}
 	}
 }

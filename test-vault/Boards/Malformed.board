@@ -1,0 +1,6 @@
+# Deliberately malformed for the parse-error panel test (spec §13.3 / M3 acceptance).
+# The colon after "filters" here is followed by an unclosed flow sequence, which is invalid YAML.
+filters: not done
+views:
+  - name: Broken
+    columns: [field: status

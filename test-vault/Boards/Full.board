@@ -1,0 +1,67 @@
+version: 1
+# Board-level filters AND with every view below.
+filters: |-
+  not done
+settings:
+  hideDoneAfterDays: 7
+  clickAction: modal
+  density: comfortable
+views:
+  - name: Status
+    filters: ""
+    sort: sort by priority
+    settings: {}
+    columns:
+      field: status
+      generator: explicit
+      buckets:
+        - name: To Do
+          match: [" "]
+        - name: In Progress
+          match: ["/"]
+        - name: Done
+          match: ["x"]
+      overrides:
+        In Progress:
+          wip:
+            max: 3
+            mode: soft
+          rollups: [count, urgency]
+    lanes:
+      groupBy: group by tags
+    card:
+      chips: [due, priority, tags, dependency]
+    order:
+      To Do:
+        - { id: des003, first: true }
+
+  - name: This week
+    filters: "priority is above none"
+    sort: ""
+    settings:
+      hideDoneAfterDays: 0
+    columns:
+      field: due
+      generator: rolling
+      span: { from: -2, to: 4 }
+      edges: [overdue, later, undated]
+      overrides:
+        overdue:
+          rollups: [count]
+    lanes: null
+    card:
+      chips: [due, priority, recurrence, children]
+    order: {}
+
+  - name: By tag
+    filters: ""
+    sort: sort by due
+    settings: {}
+    columns:
+      field: tags
+      generator: auto
+      overrides: {}
+    lanes: null
+    card:
+      chips: [due, priority, path]
+    order: {}

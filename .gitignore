@@ -17,6 +17,8 @@ main.js
 
 # obsidian
 data.json
+# ...except the committed test-vault's Tasks plugin config fixture (§17: manual testing).
+!test-vault/**/data.json
 
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
