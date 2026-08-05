@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import moment from 'moment';
-import { App } from 'obsidian';
+import { App, moment } from 'obsidian';
 import { decideDrop, executeDrop, fieldWriterTransform, type DropParams } from '../../src/board/dropController';
 import { FieldWriter } from '../../src/write/FieldWriter';
 import { TaskWriter } from '../../src/write/TaskWriter';

@@ -12,7 +12,7 @@ export interface BucketResult {
 }
 
 function isWritable(field: FieldRef): boolean {
-	return (WRITABLE_FIELDS as readonly FieldRef[]).includes(field);
+	return WRITABLE_FIELDS.includes(field);
 }
 
 function resolveGenerator(spec: ColumnSpec): 'explicit' | 'rolling' | 'auto' {

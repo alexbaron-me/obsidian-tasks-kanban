@@ -3,8 +3,7 @@
 // that's covered independently by tests/board/dropController.test.ts.
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/preact';
-import { App } from 'obsidian';
-import moment from 'moment';
+import { App, moment } from 'obsidian';
 import { CardView, type CardViewProps } from '../../src/ui/components/Card';
 import { TaskWriter } from '../../src/write/TaskWriter';
 import { FieldWriter } from '../../src/write/FieldWriter';
@@ -64,14 +63,14 @@ describe('CardView', () => {
 	it('checkbox reflects a done status', () => {
 		const task = makeTask({ description: 'Done thing', status: 'x', done: moment().format('YYYY-MM-DD') });
 		renderCard({ task });
-		const checkbox = screen.getByRole('checkbox') as HTMLInputElement;
+		const checkbox = screen.getByRole('checkbox');
 		expect(checkbox.checked).toBe(true);
 	});
 
 	it('checkbox reflects a not-done status', () => {
 		const task = makeTask({ description: 'Todo thing', status: ' ' });
 		renderCard({ task });
-		const checkbox = screen.getByRole('checkbox') as HTMLInputElement;
+		const checkbox = screen.getByRole('checkbox');
 		expect(checkbox.checked).toBe(false);
 	});
 

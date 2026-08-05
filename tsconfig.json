@@ -17,5 +17,5 @@
 		"jsxImportSource": "preact",
 		"lib": ["ES2021", "DOM"]
 	},
-	"include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"]
+	"include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "vitest.config.ts"]
 }

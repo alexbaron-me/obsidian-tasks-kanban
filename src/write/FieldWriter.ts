@@ -1,5 +1,5 @@
 import type { Moment } from 'moment';
-import { PRIORITY_NUMBER_BY_NAME, type PriorityName } from '../types/tasks';
+import type { PriorityName } from '../types/tasks';
 
 export type TaskFieldFormat = 'emoji' | 'dataview';
 

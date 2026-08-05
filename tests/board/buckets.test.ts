@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import moment from 'moment';
+import { moment } from 'obsidian';
 import { generateBuckets } from '../../src/board/buckets';
 import { makeTask, todayStr } from '../fixtures/tasks';
 import type { ColumnSpec } from '../../src/types/board';

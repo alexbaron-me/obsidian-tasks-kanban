@@ -21,11 +21,9 @@ export class TasksBoardSettingsTab extends PluginSettingTab {
 		containerEl.empty();
 		const settings = this.deps.getSettings();
 
-		containerEl.createEl('h2', { text: 'Tasks Board' });
-
 		new Setting(containerEl)
 			.setName('Field format')
-			.setDesc('How new/edited fields (dates, priority, id) are written into task lines. Seeded once from the Tasks plugin, then yours to change — never re-synced automatically.')
+			.setDesc('How new or edited fields (dates, priority, ID) are written into task lines. Seeded once from the tasks plugin, then yours to change — never re-synced automatically.')
 			.addDropdown((dd) => {
 				dd.addOption('emoji', 'Tasks emoji format');
 				dd.addOption('dataview', 'Dataview inline fields');
@@ -49,7 +47,7 @@ export class TasksBoardSettingsTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName('Manual-ordering id confirmation')
+			.setName('Manual-ordering ID confirmation')
 			.setDesc('Whether the one-time "this will add a 🆔" confirmation has been dismissed.')
 			.addToggle((toggle) => {
 				toggle.setValue(settings.idConfirmDismissed);
@@ -59,14 +57,14 @@ export class TasksBoardSettingsTab extends PluginSettingTab {
 				});
 			});
 
-		containerEl.createEl('h3', { text: 'Default board/view settings' });
-		containerEl.createEl('p', {
-			text: 'These are the outermost level of the settings cascade (global → board → view). Boards and views can override any of them.',
-		});
+		new Setting(containerEl)
+			.setName('Defaults for boards and views')
+			.setDesc('The outermost level of the cascade (global → board → view). Boards and views can override any of these.')
+			.setHeading();
 
 		new Setting(containerEl)
 			.setName('Hide done tasks after (days)')
-			.setDesc('0 disables auto-hide.')
+			.setDesc('A value of 0 disables auto-hide.')
 			.addText((text) => {
 				text.setValue(String(settings.cascade.hideDoneAfterDays ?? DEFAULT_CASCADE_SETTINGS.hideDoneAfterDays));
 				text.onChange(async (value) => {
@@ -88,7 +86,7 @@ export class TasksBoardSettingsTab extends PluginSettingTab {
 			});
 		});
 
-		new Setting(containerEl).setName('WIP limit mode').addDropdown((dd) => {
+		new Setting(containerEl).setName('Wip limit mode').addDropdown((dd) => {
 			dd.addOption('soft', 'Soft (warn)');
 			dd.addOption('hard', 'Hard (block)');
 			dd.setValue(settings.cascade.wipMode ?? DEFAULT_CASCADE_SETTINGS.wipMode);
@@ -118,10 +116,10 @@ export class TasksBoardSettingsTab extends PluginSettingTab {
 			});
 		});
 
-		containerEl.createEl('h3', { text: 'Accent rules' });
-		containerEl.createEl('p', {
-			text: 'First match wins. Rules run through the same query engine as filters, including "filter by function" — which runs with full plugin privileges. Do not open .board files from untrusted sources.',
-		});
+		new Setting(containerEl)
+			.setName('Accent rules')
+			.setDesc('First match wins. Rules run through the same query engine as filters, including "filter by function" — which runs with full plugin privileges. Do not open .board files from untrusted sources.')
+			.setHeading();
 		settings.accentRules.forEach((rule, index) => {
 			new Setting(containerEl)
 				.setName(rule.name || `Rule ${index + 1}`)
@@ -134,7 +132,7 @@ export class TasksBoardSettingsTab extends PluginSettingTab {
 					});
 				})
 				.addText((text) => {
-					text.setPlaceholder('Filter, e.g. priority is high');
+					text.setPlaceholder('Filter, e.g. Priority is high');
 					text.setValue(rule.filter);
 					text.onChange(async (value) => {
 						rule.filter = value;

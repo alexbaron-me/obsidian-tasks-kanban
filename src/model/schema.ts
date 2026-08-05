@@ -144,7 +144,7 @@ function validateColumnSpec(raw: unknown, path: string, errors: SchemaError[]): 
 
 	let edges: ColumnSpec['edges'];
 	if (isStringArray(raw.edges)) {
-		edges = raw.edges.filter((e) => e === 'overdue' || e === 'later' || e === 'undated') as ColumnSpec['edges'];
+		edges = raw.edges.filter((e): e is 'overdue' | 'later' | 'undated' => e === 'overdue' || e === 'later' || e === 'undated');
 	}
 
 	const overrides: Record<string, BucketOverride> = {};

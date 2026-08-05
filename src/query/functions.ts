@@ -14,7 +14,7 @@ export class FunctionError extends Error {}
 function getCompiled(expr: string): (task: Task, query: QueryContext) => unknown {
 	let fn = compiledCache.get(expr);
 	if (!fn) {
-		// eslint-disable-next-line @typescript-eslint/no-implied-eval
+		// `new Function` here is intentional and load-bearing — see the eslint.config.mts override for this file.
 		fn = new Function('task', 'query', `"use strict"; return (${expr});`) as (
 			task: Task,
 			query: QueryContext,

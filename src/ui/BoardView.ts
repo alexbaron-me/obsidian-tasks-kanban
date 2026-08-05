@@ -52,8 +52,12 @@ export class BoardView extends TextFileView {
 		return this.data;
 	}
 
-	async setViewData(data: string, _clear: boolean): Promise<void> {
+	setViewData(data: string, _clear: boolean): void {
 		this.data = data;
+		void this.loadBoard();
+	}
+
+	private async loadBoard(): Promise<void> {
 		if (!this.file) return;
 		if (this.mountedPath === this.file.path && this.boardModel) return;
 

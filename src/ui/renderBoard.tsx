@@ -21,22 +21,22 @@ function Root({ ctx, boardModel }: { ctx: RenderContext; boardModel: BoardModel 
 	useEffect(() => {
 		// Cache-update events fire frequently while editing; debounce the re-render at 50ms
 		// trailing edge (§6.6) rather than recomputing the whole board per keystroke.
-		let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+		let debounceTimer: number | null = null;
 		const unsub = ctx.tasksCache.subscribe(() => {
 			setReady(ctx.tasksCache.isReady());
-			if (debounceTimer) clearTimeout(debounceTimer);
-			debounceTimer = setTimeout(() => setTasksVersion((v) => v + 1), RENDER_DEBOUNCE_MS);
+			if (debounceTimer) window.clearTimeout(debounceTimer);
+			debounceTimer = window.setTimeout(() => setTasksVersion((v) => v + 1), RENDER_DEBOUNCE_MS);
 		});
 		return () => {
-			if (debounceTimer) clearTimeout(debounceTimer);
+			if (debounceTimer) window.clearTimeout(debounceTimer);
 			unsub();
 		};
 	}, [ctx.tasksCache]);
 
 	useEffect(() => {
 		if (ready) return;
-		const timer = setTimeout(() => setTimedOut(true), BOOTSTRAP_TIMEOUT_MS);
-		return () => clearTimeout(timer);
+		const timer = window.setTimeout(() => setTimedOut(true), BOOTSTRAP_TIMEOUT_MS);
+		return () => window.clearTimeout(timer);
 	}, [ready]);
 
 	useEffect(() => boardModel.subscribe(setModelState), [boardModel]);

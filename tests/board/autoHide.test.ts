@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import moment from 'moment';
+import { moment } from 'obsidian';
 import { applyAutoHide } from '../../src/board/autoHide';
 import { makeTask, todayStr } from '../fixtures/tasks';
 

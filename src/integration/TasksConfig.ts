@@ -45,8 +45,8 @@ function toTaskStatus(raw: unknown): TaskStatus | null {
 function parseStatuses(raw: unknown): TaskStatus[] | null {
 	if (typeof raw !== 'object' || raw === null) return null;
 	const settings = raw as { coreStatuses?: unknown; customStatuses?: unknown };
-	const core = Array.isArray(settings.coreStatuses) ? settings.coreStatuses : [];
-	const custom = Array.isArray(settings.customStatuses) ? settings.customStatuses : [];
+	const core: unknown[] = Array.isArray(settings.coreStatuses) ? settings.coreStatuses : [];
+	const custom: unknown[] = Array.isArray(settings.customStatuses) ? settings.customStatuses : [];
 	const combined = [...core, ...custom].map(toTaskStatus).filter((s): s is TaskStatus => s !== null);
 	return combined.length > 0 ? combined : null;
 }

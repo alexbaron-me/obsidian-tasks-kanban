@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import moment from 'moment';
+import { moment } from 'obsidian';
 import { compareDates, parseQueryDate } from '../../src/query/dates';
 
 const ref = moment('2026-08-05');

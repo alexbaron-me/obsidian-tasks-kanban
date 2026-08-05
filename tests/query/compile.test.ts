@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import moment from 'moment';
+import { moment } from 'obsidian';
 import { compileQuery } from '../../src/query/compile';
 import type { QueryContext } from '../../src/query/context';
-import { makeFixtureSet, makeTask, todayStr } from '../fixtures/tasks';
+import { fixtureValues, makeFixtureSet, makeTask, todayStr } from '../fixtures/tasks';
 import type { Task } from '../../src/types/tasks';
 
 function ctxFor(allTasks: Task[]): QueryContext {
@@ -128,7 +128,7 @@ describe('filter evaluation', () => {
 
 	it('is blocked is true only when a listed blocker is not done', () => {
 		const fx = makeFixtureSet();
-		const all = Object.values(fx);
+		const all = fixtureValues(fx);
 		expect(filterOne('is blocked', fx.blocked, all)).toBe(true);
 		expect(filterOne('is blocked', fx.unblocked, all)).toBe(false);
 		expect(filterOne('is not blocked', fx.unblocked, all)).toBe(true);
@@ -136,7 +136,7 @@ describe('filter evaluation', () => {
 
 	it('is blocking is true when another unmet task depends on this one', () => {
 		const fx = makeFixtureSet();
-		const all = Object.values(fx);
+		const all = fixtureValues(fx);
 		expect(filterOne('is blocking', fx.blocking, all)).toBe(true);
 		expect(filterOne('is not blocking', fx.plain, all)).toBe(true);
 	});

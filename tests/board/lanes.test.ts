@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import moment from 'moment';
+import { moment } from 'obsidian';
 import { buildLanes } from '../../src/board/lanes';
 import { makeTask } from '../fixtures/tasks';
 import type { QueryContext } from '../../src/query/context';

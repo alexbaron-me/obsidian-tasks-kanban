@@ -45,7 +45,8 @@ export interface Task {
 	done: TasksDate;
 	cancelled: TasksDate;
 	happens: TasksDate;
-	recurrence: unknown | null;
+	/** Never null in practice when set — `unknown` already covers the absent (null) case. */
+	recurrence: unknown;
 	isRecurring: boolean;
 	/** Empty string when the user has not set the id field. */
 	id: string;

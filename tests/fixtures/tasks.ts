@@ -1,4 +1,4 @@
-import moment from 'moment';
+import { moment } from 'obsidian';
 import type { Task, TaskStatus, TasksDate, TasksFile } from '../../src/types/tasks';
 import { DEFAULT_STATUSES, PRIORITY_NUMBER_BY_NAME } from '../../src/types/tasks';
 
@@ -104,8 +104,27 @@ export function todayStr(offsetDays = 0): string {
 	return moment().add(offsetDays, 'day').format('YYYY-MM-DD');
 }
 
+export interface FixtureSet {
+	plain: Task;
+	recurring: Task;
+	blocked: Task;
+	unblocked: Task;
+	blocking: Task;
+	blockerDone: Task;
+	undated: Task;
+	overdue: Task;
+	multiTag: Task;
+	withChildren: Task;
+	done: Task;
+	cancelled: Task;
+}
+
+export function fixtureValues(fx: FixtureSet): Task[] {
+	return Object.keys(fx).map((key) => fx[key as keyof FixtureSet]);
+}
+
 /** A representative fixture set covering the shapes named in spec §17. */
-export function makeFixtureSet(): Record<string, Task> {
+export function makeFixtureSet(): FixtureSet {
 	const blocker = makeTask({ description: 'Blocker task', id: 'block1', status: ' ' });
 	const blockerDone = makeTask({ description: 'Finished blocker', id: 'block2', status: 'x', done: todayStr(-1) });
 

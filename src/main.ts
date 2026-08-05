@@ -4,7 +4,7 @@ import { TasksConfig } from './integration/TasksConfig';
 import { TasksApi, isTasksPluginEnabled } from './integration/TasksApi';
 import { BoardStore } from './model/BoardStore';
 import { bootstrapBoardFile, serializeBoardFile } from './model/schema';
-import { defaultGlobalSettings, loadGlobalSettings, type GlobalSettings } from './settings/GlobalSettings';
+import { loadGlobalSettings, type GlobalSettings } from './settings/GlobalSettings';
 import { TasksBoardSettingsTab } from './settings/SettingsTab';
 import { BoardView, VIEW_TYPE_BOARD, type BoardViewDeps } from './ui/BoardView';
 import { registerBoardEmbed, unregisterBoardEmbed, createCodeblockProcessor, type EmbedDeps } from './ui/BoardEmbed';
@@ -23,7 +23,7 @@ export default class TasksBoardPlugin extends Plugin {
 		this.boardStore = new BoardStore(this.app);
 
 		await this.tasksConfig.refresh();
-		const persisted = await this.loadData();
+		const persisted: unknown = await this.loadData();
 		this.globalSettings = loadGlobalSettings(persisted, this.tasksConfig.get().taskFormat);
 		if (persisted === null || persisted === undefined) {
 			// First-ever load: persist the seeded format immediately so it's visible in
@@ -65,8 +65,8 @@ export default class TasksBoardPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: 'toggle-tasks-board-view',
-			name: 'Open current file as a Tasks Board',
+			id: 'open-as-board',
+			name: 'Open current file as a board',
 			checkCallback: (checking) => {
 				const file = this.app.workspace.getActiveFile();
 				if (!file || file.extension !== 'board') return false;
@@ -78,7 +78,7 @@ export default class TasksBoardPlugin extends Plugin {
 		this.registerObsidianProtocolHandler('tasks-board', async (params) => {
 			const path = params['file'];
 			if (typeof path !== 'string') {
-				new Notice('tasks-board URI requires a "file" parameter');
+				new Notice('Tasks board uri requires a "file" parameter');
 				return;
 			}
 			const leaf = this.app.workspace.getLeaf(false);
@@ -107,7 +107,7 @@ export default class TasksBoardPlugin extends Plugin {
 
 	private async createNewBoard(): Promise<void> {
 		if (!isTasksPluginEnabled(this.app)) {
-			new Notice('Tasks Board needs the Tasks plugin installed and enabled.');
+			new Notice('Tasks board needs the tasks plugin installed and enabled.');
 			return;
 		}
 		const statuses = this.tasksConfig.get().statuses;

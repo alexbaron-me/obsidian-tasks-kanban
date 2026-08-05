@@ -59,7 +59,6 @@ describe('applyOrder', () => {
 
 	it('a completed anchor moves the card by one slot rather than scrambling the column (documented limitation)', () => {
 		const a = makeTask({ id: 'aaa' });
-		const b = makeTask({ id: 'bbb' });
 		const c = makeTask({ id: 'ccc' });
 		// "aaa" is ordered before "bbb". If "bbb" then completes and drops out of the bucket
 		// (e.g. filtered out), re-applying the same override against the smaller list still

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import moment from 'moment';
+import { moment } from 'obsidian';
 import { computeBoardData } from '../../src/board/renderPipeline';
 import { makeTask, todayStr } from '../fixtures/tasks';
 import type { BoardFile, ViewConfig } from '../../src/types/board';

@@ -38,5 +38,5 @@ export function inheritedValue<K extends keyof SettingsBlock>(
 	board: SettingsBlock,
 ): SettingsBlock[K] | undefined {
 	if (key === 'quickAddTarget') return (global.defaultQuickAddTarget ?? undefined) as SettingsBlock[K];
-	return (board[key] ?? (global.cascade as SettingsBlock)[key]) as SettingsBlock[K] | undefined;
+	return board[key] ?? global.cascade[key];
 }

@@ -81,10 +81,9 @@ class BoardEmbedComponent extends Component {
 }
 
 function looseFilePath(file: unknown): string | null {
-	if (typeof file === 'object' && file !== null && 'path' in file && typeof (file as { path: unknown }).path === 'string') {
-		return (file as { path: string }).path;
-	}
-	return null;
+	if (typeof file !== 'object' || file === null || !('path' in file)) return null;
+	const path: unknown = file.path;
+	return typeof path === 'string' ? path : null;
 }
 
 function looseSubpathName(subpath: unknown): string | null {

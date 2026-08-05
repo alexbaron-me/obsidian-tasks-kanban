@@ -68,7 +68,7 @@ describe('TasksCache', () => {
 		const app = new App();
 		const cache = new TasksCache(app);
 		cache.start();
-		app.workspace.trigger('obsidian-tasks-plugin:cache-update', { state: 'Cache' } as never);
+		app.workspace.trigger('obsidian-tasks-plugin:cache-update', { state: 'Cache' });
 		expect(cache.getTasks()).toEqual([]);
 	});
 });

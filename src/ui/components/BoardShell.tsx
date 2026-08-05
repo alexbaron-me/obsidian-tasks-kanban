@@ -107,7 +107,13 @@ export function BoardShell(props: BoardShellProps) {
 	async function toggleDone(task: Task) {
 		const isDone = task.status.type === 'DONE' || task.status.type === 'CANCELLED';
 		const target = resolveStatusBySymbol(props.statuses, isDone ? task.status.nextStatusSymbol : 'x');
-		const status = target ?? { symbol: isDone ? ' ' : 'x', name: isDone ? 'Todo' : 'Done', type: isDone ? 'TODO' : 'DONE', nextStatusSymbol: isDone ? 'x' : ' ' } as TaskStatus;
+		const fallback: TaskStatus = {
+			symbol: isDone ? ' ' : 'x',
+			name: isDone ? 'Todo' : 'Done',
+			type: isDone ? 'TODO' : 'DONE',
+			nextStatusSymbol: isDone ? 'x' : ' ',
+		};
+		const status = target ?? fallback;
 		const result = await props.taskWriter.setStatus(task, status);
 		if (!result.ok && result.message) new Notice(result.message);
 	}
@@ -132,8 +138,12 @@ export function BoardShell(props: BoardShellProps) {
 
 	async function handleDragEnd(event: DragEndEvent) {
 		if (!event.over || !view || !data) return;
-		const activeData = event.active.data.current as { task?: Task } | undefined;
-		const task = activeData?.task;
+		const active = event.active as unknown as { data: { current: unknown } };
+		const rawData: unknown = active.data.current;
+		const task =
+			typeof rawData === 'object' && rawData !== null && 'task' in rawData
+				? (rawData as { task: Task }).task
+				: undefined;
 		if (!task) return;
 
 		const target = parseDropTargetId(String(event.over.id));
@@ -277,7 +287,7 @@ export function BoardShell(props: BoardShellProps) {
 			) : null}
 			{showSettings ? (
 				<ViewSettingsPanel
-					global={props.globalSettings}
+					globalSettings={props.globalSettings}
 					boardSettings={boardFile.settings}
 					viewSettings={view.settings}
 					columns={view.columns}

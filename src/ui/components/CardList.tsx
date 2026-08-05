@@ -3,7 +3,6 @@ import { useDroppable } from '@dnd-kit/core';
 import type { Task } from '../../types/tasks';
 import type { Bucket, ChipKind } from '../../types/board';
 import type { QueryContext } from '../../query/context';
-import type { AccentRule } from '../../settings/GlobalSettings';
 import type { TaskWriter } from '../../write/TaskWriter';
 import { compileAccentRules, matchAccent, type CompiledAccentRule } from '../../board/accent';
 import { Card } from './Card';

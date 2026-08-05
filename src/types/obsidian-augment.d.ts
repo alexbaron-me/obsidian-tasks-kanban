@@ -1,4 +1,4 @@
-import 'obsidian';
+import type { EventRef } from 'obsidian';
 import type { Task } from './tasks';
 
 export interface TasksCacheUpdatePayload {

@@ -6,29 +6,19 @@
 // independent of that, so we stub CardList out here to test it in isolation.
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/preact';
-import { App } from 'obsidian';
-import moment from 'moment';
+import { App, moment } from 'obsidian';
+import { Column } from '../../src/ui/components/Column';
+import { TaskWriter } from '../../src/write/TaskWriter';
+import { FieldWriter } from '../../src/write/FieldWriter';
+import { TasksApi } from '../../src/integration/TasksApi';
+import { TasksCache } from '../../src/integration/TasksCache';
+import { makeTask } from '../fixtures/tasks';
+import type { RenderedColumn } from '../../src/board/renderPipeline';
+import type { QueryContext } from '../../src/query/context';
 
 vi.mock('../../src/ui/components/CardList', () => ({
 	CardList: () => <div data-testid="card-list-stub" />,
 }));
-
-// eslint-disable-next-line import/first
-import { Column } from '../../src/ui/components/Column';
-// eslint-disable-next-line import/first
-import { TaskWriter } from '../../src/write/TaskWriter';
-// eslint-disable-next-line import/first
-import { FieldWriter } from '../../src/write/FieldWriter';
-// eslint-disable-next-line import/first
-import { TasksApi } from '../../src/integration/TasksApi';
-// eslint-disable-next-line import/first
-import { TasksCache } from '../../src/integration/TasksCache';
-// eslint-disable-next-line import/first
-import { makeTask } from '../fixtures/tasks';
-// eslint-disable-next-line import/first
-import type { RenderedColumn } from '../../src/board/renderPipeline';
-// eslint-disable-next-line import/first
-import type { QueryContext } from '../../src/query/context';
 
 afterEach(cleanup);
 

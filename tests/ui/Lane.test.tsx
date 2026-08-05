@@ -1,27 +1,18 @@
 // See tests/ui/Column.test.tsx for why Column (and transitively Card) is stubbed here.
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/preact';
-import { App } from 'obsidian';
-import moment from 'moment';
+import { App, moment } from 'obsidian';
+import { Lane } from '../../src/ui/components/Lane';
+import { TaskWriter } from '../../src/write/TaskWriter';
+import { FieldWriter } from '../../src/write/FieldWriter';
+import { TasksApi } from '../../src/integration/TasksApi';
+import { TasksCache } from '../../src/integration/TasksCache';
+import type { RenderedLane } from '../../src/board/renderPipeline';
+import type { QueryContext } from '../../src/query/context';
 
 vi.mock('../../src/ui/components/Column', () => ({
 	Column: (props: { column: { bucket: { id: string } } }) => <div data-testid={`column-${props.column.bucket.id}`} />,
 }));
-
-// eslint-disable-next-line import/first
-import { Lane } from '../../src/ui/components/Lane';
-// eslint-disable-next-line import/first
-import { TaskWriter } from '../../src/write/TaskWriter';
-// eslint-disable-next-line import/first
-import { FieldWriter } from '../../src/write/FieldWriter';
-// eslint-disable-next-line import/first
-import { TasksApi } from '../../src/integration/TasksApi';
-// eslint-disable-next-line import/first
-import { TasksCache } from '../../src/integration/TasksCache';
-// eslint-disable-next-line import/first
-import type { RenderedLane } from '../../src/board/renderPipeline';
-// eslint-disable-next-line import/first
-import type { QueryContext } from '../../src/query/context';
 
 afterEach(cleanup);
 

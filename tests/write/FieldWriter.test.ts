@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import moment from 'moment';
+import { moment } from 'obsidian';
 import { FieldWriter } from '../../src/write/FieldWriter';
 
 describe('FieldWriter — emoji format', () => {

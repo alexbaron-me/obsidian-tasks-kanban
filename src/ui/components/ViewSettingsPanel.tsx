@@ -4,7 +4,7 @@ import type { GlobalSettings } from '../../settings/GlobalSettings';
 import { inheritedValue } from '../../settings/cascade';
 
 export interface ViewSettingsPanelProps {
-	global: GlobalSettings;
+	globalSettings: GlobalSettings;
 	boardSettings: SettingsBlock;
 	viewSettings: SettingsBlock;
 	columns: ColumnSpec;
@@ -149,40 +149,40 @@ export function ViewSettingsPanel(props: ViewSettingsPanelProps) {
 				<CascadedSelect
 					label="Click action"
 					value={props.viewSettings.clickAction}
-					inherited={inheritedValue('clickAction', props.global, props.boardSettings)}
+					inherited={inheritedValue('clickAction', props.globalSettings, props.boardSettings)}
 					options={['file', 'modal', 'preview', 'none']}
 					onChange={(v) => props.onChangeViewSettings({ clickAction: v as SettingsBlock['clickAction'] })}
 				/>
 				<CascadedSelect
 					label="Density"
 					value={props.viewSettings.density}
-					inherited={inheritedValue('density', props.global, props.boardSettings)}
+					inherited={inheritedValue('density', props.globalSettings, props.boardSettings)}
 					options={['compact', 'comfortable']}
 					onChange={(v) => props.onChangeViewSettings({ density: v as SettingsBlock['density'] })}
 				/>
 				<CascadedSelect
 					label="WIP mode"
 					value={props.viewSettings.wipMode}
-					inherited={inheritedValue('wipMode', props.global, props.boardSettings)}
+					inherited={inheritedValue('wipMode', props.globalSettings, props.boardSettings)}
 					options={['soft', 'hard']}
 					onChange={(v) => props.onChangeViewSettings({ wipMode: v as SettingsBlock['wipMode'] })}
 				/>
 				<CascadedSelect
 					label="Blocked drop mode"
 					value={props.viewSettings.blockedDropMode}
-					inherited={inheritedValue('blockedDropMode', props.global, props.boardSettings)}
+					inherited={inheritedValue('blockedDropMode', props.globalSettings, props.boardSettings)}
 					options={['soft', 'hard']}
 					onChange={(v) => props.onChangeViewSettings({ blockedDropMode: v as SettingsBlock['blockedDropMode'] })}
 				/>
 				<CascadedSelect
 					label="Postpone field"
 					value={props.viewSettings.postponeField}
-					inherited={inheritedValue('postponeField', props.global, props.boardSettings)}
+					inherited={inheritedValue('postponeField', props.globalSettings, props.boardSettings)}
 					options={['due', 'scheduled']}
 					onChange={(v) => props.onChangeViewSettings({ postponeField: v as SettingsBlock['postponeField'] })}
 				/>
 				<label class="tasks-board-settings__field">
-					{`Hide done after N days (inherit: ${inheritedValue('hideDoneAfterDays', props.global, props.boardSettings) ?? '—'})`}
+					{`Hide done after N days (inherit: ${inheritedValue('hideDoneAfterDays', props.globalSettings, props.boardSettings) ?? '—'})`}
 					<input
 						type="number"
 						value={props.viewSettings.hideDoneAfterDays ?? ''}

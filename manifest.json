@@ -2,7 +2,7 @@
 	"id": "tasks-board",
 	"name": "Tasks Board",
 	"version": "0.1.0",
-	"minAppVersion": "1.5.0",
+	"minAppVersion": "1.5.7",
 	"description": "Kanban boards over your Obsidian Tasks. Cards are your real tasks, wherever they live.",
 	"author": "Tasks Board",
 	"isDesktopOnly": false

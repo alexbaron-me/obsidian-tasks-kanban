@@ -69,7 +69,7 @@ export function CardView(props: CardViewProps) {
 		menu.addItem((item) => item.setTitle(isDone ? 'Mark not done' : 'Mark done').onClick(() => props.onToggleDone(task)));
 		menu.addItem((item) => item.setTitle('Edit task…').onClick(() => props.onEdit(task)));
 		menu.addItem((item) => item.setTitle('Open source note').onClick(() => props.onOpenFile(task)));
-		menu.showAtMouseEvent(e as unknown as MouseEvent);
+		menu.showAtMouseEvent(e);
 	}
 
 	function focusSibling(current: HTMLElement, offset: 1 | -1) {
@@ -168,7 +168,7 @@ export function CardView(props: CardViewProps) {
 					type="button"
 					class="tasks-board-card__menu-btn"
 					aria-label="Task menu"
-					onClick={(e) => handleContextMenu(e as unknown as MouseEvent)}
+					onClick={(e) => handleContextMenu(e)}
 				>
 					⋯
 				</button>

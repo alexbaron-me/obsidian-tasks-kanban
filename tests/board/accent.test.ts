@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import moment from 'moment';
+import { moment } from 'obsidian';
 import { compileAccentRules, matchAccent } from '../../src/board/accent';
 import { makeTask } from '../fixtures/tasks';
 import type { QueryContext } from '../../src/query/context';

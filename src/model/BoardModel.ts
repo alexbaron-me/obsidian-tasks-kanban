@@ -45,7 +45,7 @@ export class BoardModel {
 	private document: YAML.Document | null = null;
 	private state: BoardModelState;
 	private listeners = new Set<Listener>();
-	private saveTimer: ReturnType<typeof setTimeout> | null = null;
+	private saveTimer: number | null = null;
 	private dirty = false;
 
 	constructor(
@@ -109,15 +109,15 @@ export class BoardModel {
 
 	private scheduleSave(): void {
 		this.dirty = true;
-		if (this.saveTimer) clearTimeout(this.saveTimer);
-		this.saveTimer = setTimeout(() => {
+		if (this.saveTimer) window.clearTimeout(this.saveTimer);
+		this.saveTimer = window.setTimeout(() => {
 			void this.flush();
 		}, SAVE_DEBOUNCE_MS);
 	}
 
 	async flush(): Promise<void> {
 		if (this.saveTimer) {
-			clearTimeout(this.saveTimer);
+			window.clearTimeout(this.saveTimer);
 			this.saveTimer = null;
 		}
 		if (!this.dirty || !this.document) return;
