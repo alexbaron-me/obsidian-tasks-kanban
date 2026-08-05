@@ -139,6 +139,10 @@
 
 .tasks-board-card-list {
 	overflow-y: auto;
+	/* Explicit, not left to the CSS overflow "visible+auto -> auto,auto" promotion rule: without
+	   this, any transform/width blip during a drag (even from a dragged card's own DragOverlay
+	   shadow) pops a horizontal scrollbar for the whole column. */
+	overflow-x: hidden;
 	padding: 6px;
 	display: flex;
 	flex-direction: column;
@@ -165,7 +169,15 @@
 }
 
 .tasks-board-card--dragging {
-	opacity: 0.5;
+	opacity: 0.4;
+}
+
+.tasks-board-card--overlay {
+	cursor: grabbing;
+	box-shadow: var(--shadow-l, 0 4px 16px rgba(0, 0, 0, 0.25));
+	/* DragOverlay renders this in a body-level portal, so it's free to be as wide as its source
+	   column without ever triggering that column's scrollbars. */
+	width: 260px;
 }
 
 .tasks-board-card--drop-before {
@@ -253,51 +265,110 @@
 	font-family: var(--font-monospace);
 }
 
-.tasks-board-filter-panel,
-.tasks-board-settings-panel {
-	border-bottom: 1px solid var(--background-modifier-border);
-	padding: 8px 12px;
-	background: var(--background-secondary);
+.tasks-board-toolbar-btn {
+	background: transparent;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 4px 10px;
+	color: var(--text-muted);
+	cursor: pointer;
 }
 
-.tasks-board-filter-panel__header,
-.tasks-board-settings-panel__header {
+.tasks-board-toolbar-btn:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+/* Board settings modal (src/ui/BoardSettingsModal.ts) */
+
+.tasks-board-settings-modal {
+	width: min(680px, 92vw);
+}
+
+.tasks-board-settings-modal .modal-content {
+	padding-top: 0;
+	max-height: 75vh;
+	overflow-y: auto;
+}
+
+.tasks-board-settings-modal__tabs {
 	display: flex;
-	justify-content: space-between;
-	align-items: center;
-}
-
-.tasks-board-filter-panel__textarea,
-.tasks-board-settings__json {
-	width: 100%;
-	font-family: var(--font-monospace);
-}
-
-.tasks-board-filter-panel__tag-list {
-	display: flex;
-	flex-wrap: wrap;
 	gap: 4px;
-	margin: 4px 0;
+	padding: 4px 0 12px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	margin-bottom: 12px;
+	position: sticky;
+	top: 0;
+	background: var(--background-primary);
+	z-index: 1;
 }
 
-.tasks-board-filter-panel__tag-btn.is-selected {
+.tasks-board-settings-modal__tab {
+	background: transparent;
+	border: none;
+	padding: 6px 12px;
+	border-radius: var(--radius-s);
+	color: var(--text-muted);
+	cursor: pointer;
+	font-size: var(--font-ui-small);
+}
+
+.tasks-board-settings-modal__tab:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+.tasks-board-settings-modal__tab.is-active {
 	background: var(--interactive-accent);
 	color: var(--text-on-accent);
 }
 
-.tasks-board-settings__field {
-	display: block;
-	margin: 6px 0;
-}
-
-.tasks-board-settings__chip-toggles {
+.tasks-board-settings-modal__body {
 	display: flex;
-	flex-wrap: wrap;
-	gap: 10px;
+	flex-direction: column;
 }
 
-.tasks-board-settings__error {
-	color: var(--text-error, var(--color-red));
+.tasks-board-settings-modal__row-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin-bottom: 4px;
+}
+
+.tasks-board-settings-modal__row {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-secondary);
+	margin-bottom: 6px;
+}
+
+.tasks-board-settings-modal__row-setting.setting-item {
+	border: none;
+	padding: 6px 10px;
+	flex-wrap: wrap;
+}
+
+.tasks-board-settings-modal__row-setting .setting-item-control {
+	flex-wrap: wrap;
+	justify-content: flex-start;
+}
+
+.tasks-board-settings-modal__textarea {
+	width: 100%;
+	font-family: var(--font-monospace);
+}
+
+.tasks-board-settings-modal__board-filters {
+	background: var(--background-secondary);
+	border-radius: var(--radius-s);
+	padding: 8px 10px;
+	font-size: var(--font-ui-smaller);
+	white-space: pre-wrap;
+	margin: 4px 0 12px;
+}
+
+.tasks-board-settings-modal__wip-input {
+	width: 5em;
 }
 
 /* Mobile / narrow layout (§12.9): horizontal snap-scroll, one column per viewport width,

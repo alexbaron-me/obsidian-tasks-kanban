@@ -1,16 +1,25 @@
 import type { App, TFile } from 'obsidian';
 import { Notice } from 'obsidian';
 import { useMemo, useState } from 'preact/hooks';
-import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import {
+	DndContext,
+	DragOverlay,
+	PointerSensor,
+	TouchSensor,
+	useSensor,
+	useSensors,
+	type DragEndEvent,
+	type DragStartEvent,
+} from '@dnd-kit/core';
 import type { BoardModelState } from '../../model/BoardModel';
 import type { BoardModel } from '../../model/BoardModel';
 import type { Task, TaskStatus } from '../../types/tasks';
 import type { ViewConfig } from '../../types/board';
 import { computeBoardData } from '../../board/renderPipeline';
-import { compileAccentRules } from '../../board/accent';
+import { compileAccentRules, matchAccent } from '../../board/accent';
 import { laneGroupField, laneWriteValueFor } from '../../board/laneWrite';
 import { decideDrop, executeDrop, fieldWriterTransform } from '../../board/dropController';
-import { recordOrder } from '../../board/order';
+import { computeDropPosition, recordOrder } from '../../board/order';
 import { generateTaskId } from '../../write/ids';
 import { IdConfirmModal } from '../../write/idConfirm';
 import type { TaskWriter } from '../../write/TaskWriter';
@@ -19,8 +28,8 @@ import type { QueryContext } from '../../query/context';
 import type { GlobalSettings } from '../../settings/GlobalSettings';
 import { resolveSettings } from '../../settings/cascade';
 import { Lane } from './Lane';
-import { FilterPanel } from './FilterPanel';
-import { ViewSettingsPanel } from './ViewSettingsPanel';
+import { CardView } from './Card';
+import { openBoardSettingsModal } from '../BoardSettingsModal';
 
 export interface BoardShellProps {
 	app: App;
@@ -43,6 +52,14 @@ function resolveStatusBySymbol(statuses: readonly TaskStatus[], symbol: string):
 	return statuses.find((s) => s.symbol === symbol) ?? null;
 }
 
+function taskFromActive(active: unknown): Task | undefined {
+	const withData = active as { data?: { current?: unknown } };
+	const rawData: unknown = withData.data?.current;
+	return typeof rawData === 'object' && rawData !== null && 'task' in rawData
+		? (rawData as { task: Task }).task
+		: undefined;
+}
+
 function parseDropTargetId(id: string): { kind: 'end' | 'before'; laneId: string; bucketId?: string; taskKey?: string } | null {
 	if (id.startsWith('end:')) {
 		const [, laneId, bucketId] = id.split(':');
@@ -62,8 +79,7 @@ export function BoardShell(props: BoardShellProps) {
 		props.initialViewName ? boardFile.views.findIndex((v) => v.name === props.initialViewName) : 0,
 	);
 	const [viewIndex, setViewIndex] = useState(initialIndex === -1 ? 0 : initialIndex);
-	const [showFilters, setShowFilters] = useState(false);
-	const [showSettings, setShowSettings] = useState(false);
+	const [activeTask, setActiveTask] = useState<Task | null>(null);
 
 	const view: ViewConfig | undefined = boardFile.views[viewIndex];
 
@@ -92,12 +108,6 @@ export function BoardShell(props: BoardShellProps) {
 		if (!view) return null;
 		return computeBoardData(boardFile, view, props.allTasks, ctx, resolved);
 	}, [boardFile, view, props.allTasks, ctx, resolved]);
-
-	const availableTags = useMemo(() => {
-		const set = new Set<string>();
-		for (const t of props.allTasks) for (const tag of t.tags) set.add(tag);
-		return [...set].sort();
-	}, [props.allTasks]);
 
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -150,14 +160,18 @@ export function BoardShell(props: BoardShellProps) {
 		});
 	}
 
+	function handleDragStart(event: DragStartEvent) {
+		setActiveTask(taskFromActive(event.active) ?? null);
+	}
+
+	function handleDragCancel() {
+		setActiveTask(null);
+	}
+
 	async function handleDragEnd(event: DragEndEvent) {
+		setActiveTask(null);
 		if (!event.over || !view || !data) return;
-		const active = event.active as unknown as { data: { current: unknown } };
-		const rawData: unknown = active.data.current;
-		const task =
-			typeof rawData === 'object' && rawData !== null && 'task' in rawData
-				? (rawData as { task: Task }).task
-				: undefined;
+		const task = taskFromActive(event.active);
 		if (!task) return;
 
 		const target = parseDropTargetId(String(event.over.id));
@@ -184,7 +198,18 @@ export function BoardShell(props: BoardShellProps) {
 		if (!targetLane || !targetColumn) return;
 
 		const sourceLane = allLanesFlat.find((l) => l.columns.some((c) => c.tasks.includes(task)));
+		const sourceColumn = sourceLane?.columns.find((c) => c.tasks.includes(task));
 		const crossedLane = view.lanes !== null && sourceLane && sourceLane.id !== targetLane.id;
+		const sameColumn = !crossedLane && sourceColumn === targetColumn;
+
+		const insertBeforeTask = insertBeforeTaskKey
+			? (targetColumn.tasks.find((t) => `${t.taskLocation.path}:${t.taskLocation.lineNumber}` === insertBeforeTaskKey) ?? null)
+			: null;
+		// A drop that lands back in exactly the same spot (same bucket, same position) is a true
+		// no-op: no write, no id assignment, no "enable manual sort" confirmation — that should
+		// only ever appear when the user actually overrides the order.
+		const { newOrder, insertAt, isNoOp } = computeDropPosition(targetColumn.tasks, task, insertBeforeTask, sameColumn);
+		if (isNoOp) return;
 
 		let laneWriteValue: import('../../types/board').BucketWriteValue | null | undefined;
 		if (crossedLane && view.lanes) {
@@ -240,12 +265,8 @@ export function BoardShell(props: BoardShellProps) {
 				id = generateTaskId(props.allTasks);
 				await props.taskWriter.setId(task, id);
 			}
-			const reordered = [...targetColumn.tasks.filter((t) => t !== task)];
-			const insertAt = insertBeforeTaskKey
-				? reordered.findIndex((t) => `${t.taskLocation.path}:${t.taskLocation.lineNumber}` === insertBeforeTaskKey)
-				: reordered.length;
-			reordered.splice(insertAt === -1 ? reordered.length : insertAt, 0, { ...task, id });
-			const override = recordOrder(reordered, insertAt === -1 ? reordered.length - 1 : insertAt);
+			const reordered = newOrder.map((t) => (t === task ? { ...t, id } : t));
+			const override = recordOrder(reordered, insertAt);
 			const existing = (view.order[bucketId] ?? []).filter((o) => o.id !== id);
 			props.boardModel.setOrder(viewIndex, bucketId, [...existing, override]);
 		}
@@ -272,10 +293,40 @@ export function BoardShell(props: BoardShellProps) {
 					+
 				</button>
 				<div class="tasks-board-tabstrip__spacer" />
-				<button type="button" onClick={() => setShowFilters((s) => !s)}>
+				<button
+					type="button"
+					class="tasks-board-toolbar-btn"
+					onClick={() =>
+						openBoardSettingsModal({
+							app: props.app,
+							boardModel: props.boardModel,
+							viewIndex,
+							view,
+							boardFilters: boardFile.filters,
+							boardSettings: boardFile.settings,
+							globalSettings: props.globalSettings,
+							initialTab: 'query',
+						})
+					}
+				>
 					Filter
 				</button>
-				<button type="button" onClick={() => setShowSettings((s) => !s)}>
+				<button
+					type="button"
+					class="tasks-board-toolbar-btn"
+					aria-label="Board settings"
+					onClick={() =>
+						openBoardSettingsModal({
+							app: props.app,
+							boardModel: props.boardModel,
+							viewIndex,
+							view,
+							boardFilters: boardFile.filters,
+							boardSettings: boardFile.settings,
+							globalSettings: props.globalSettings,
+						})
+					}
+				>
 					⚙
 				</button>
 			</div>
@@ -289,35 +340,12 @@ export function BoardShell(props: BoardShellProps) {
 			) : null}
 			{data.hiddenCount > 0 ? <div class="tasks-board-hidden-count">{data.hiddenCount} task(s) hidden (no matching column)</div> : null}
 
-			{showFilters ? (
-				<FilterPanel
-					boardFilters={boardFile.filters}
-					viewFilters={view.filters}
-					errors={[]}
-					availableTags={availableTags}
-					onChangeViewFilters={(text) => props.boardModel.setViewFilters(viewIndex, text)}
-					onClose={() => setShowFilters(false)}
-				/>
-			) : null}
-			{showSettings ? (
-				<ViewSettingsPanel
-					globalSettings={props.globalSettings}
-					boardSettings={boardFile.settings}
-					viewSettings={view.settings}
-					columns={view.columns}
-					lanes={view.lanes}
-					card={view.card}
-					sort={view.sort}
-					onChangeViewSettings={(patch) => props.boardModel.setViewSettings(viewIndex, patch)}
-					onChangeColumns={(cols) => props.boardModel.setColumns(viewIndex, cols)}
-					onChangeLanes={(lanes) => props.boardModel.setLanes(viewIndex, lanes)}
-					onChangeCard={(card) => props.boardModel.setCard(viewIndex, card)}
-					onChangeSort={(sort) => props.boardModel.setViewSort(viewIndex, sort)}
-					onClose={() => setShowSettings(false)}
-				/>
-			) : null}
-
-			<DndContext sensors={sensors} onDragEnd={(e: DragEndEvent) => void handleDragEnd(e)}>
+			<DndContext
+				sensors={sensors}
+				onDragStart={handleDragStart}
+				onDragCancel={handleDragCancel}
+				onDragEnd={(e: DragEndEvent) => void handleDragEnd(e)}
+			>
 				<div class="tasks-board-lanes">
 					{data.lanes.map((lane) => (
 						<Lane
@@ -339,6 +367,28 @@ export function BoardShell(props: BoardShellProps) {
 						/>
 					))}
 				</div>
+				<DragOverlay dropAnimation={null}>
+					{activeTask ? (
+						<CardView
+							app={props.app}
+							task={activeTask}
+							chips={view.card.chips}
+							ctx={ctx}
+							accent={matchAccent(accentRules, activeTask, ctx)}
+							clickAction={resolved.clickAction}
+							taskWriter={props.taskWriter}
+							onToggleDone={() => {}}
+							onEdit={() => {}}
+							onOpenFile={() => {}}
+							nodeRef={() => {}}
+							extraClass=" tasks-board-card--overlay"
+							style={{}}
+							dragListeners={{}}
+							dragAttributes={{}}
+							dragDisabled
+						/>
+					) : null}
+				</DragOverlay>
 			</DndContext>
 		</div>
 	);

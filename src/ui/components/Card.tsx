@@ -258,10 +258,9 @@ export function Card(props: CardProps) {
 		style['borderLeftColor'] = `var(${props.accent.cssVar})`;
 		style['backgroundColor'] = `rgba(var(${props.accent.cssVar}-rgb, 0,0,0), 0.08)`;
 	}
-	if (draggable.transform) {
-		style['transform'] = `translate3d(${draggable.transform.x}px, ${draggable.transform.y}px, 0)`;
-	}
-
+	// The moving visual is DragOverlay's clone (rendered in BoardShell, escapes column bounds via
+	// a portal); this source node stays in place and just dims, so dragging never grows the
+	// column's layout box or trips its scroll container.
 	const extraClass = `${draggable.isDragging ? ' tasks-board-card--dragging' : ''}${droppable.isOver ? ' tasks-board-card--drop-before' : ''}`;
 
 	return (
