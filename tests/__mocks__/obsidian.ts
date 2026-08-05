@@ -28,6 +28,12 @@ export class Component {
 	}
 }
 
+export class MarkdownRenderChild extends Component {
+	constructor(public containerEl: HTMLElement) {
+		super();
+	}
+}
+
 export class Events {
 	private handlers = new Map<string, Set<(...args: unknown[]) => void>>();
 	on(name: string, cb: (...args: unknown[]) => void): { name: string; cb: typeof cb } {

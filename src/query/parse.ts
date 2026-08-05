@@ -1,6 +1,6 @@
 import type { StatusType } from '../types/tasks';
 import type { PriorityName } from '../types/tasks';
-import moment from 'moment';
+import { moment } from 'obsidian';
 import { splitLines, tokenizeBooleanLine, type BoolToken } from './lex';
 import { DATE_FIELDS, parseQueryDate, type DateFieldName } from './dates';
 

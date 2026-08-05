@@ -1,5 +1,5 @@
 import type { Moment } from 'moment';
-import moment from 'moment';
+import { moment } from 'obsidian';
 import type { Task } from '../types/tasks';
 import type { Bucket, BucketWriteValue, ColumnSpec, FieldRef } from '../types/board';
 import { WRITABLE_FIELDS } from '../types/board';

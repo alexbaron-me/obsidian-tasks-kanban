@@ -16,5 +16,14 @@ export default defineConfig({
 		environment: 'jsdom',
 		globals: false,
 		include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
+		alias: {
+			react: 'preact/compat',
+			'react-dom': 'preact/compat',
+		},
+		server: {
+			deps: {
+				inline: true,
+			},
+		},
 	},
 });

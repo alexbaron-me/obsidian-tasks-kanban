@@ -1,5 +1,5 @@
 import * as chrono from 'chrono-node';
-import moment from 'moment';
+import { moment } from 'obsidian';
 import type { Moment } from 'moment';
 import type { Task, TasksDate } from '../types/tasks';
 

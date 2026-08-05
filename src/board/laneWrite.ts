@@ -1,4 +1,4 @@
-import moment from 'moment';
+import { moment } from 'obsidian';
 import { parseQuery } from '../query/parse';
 import type { GroupField } from '../query/parse';
 import type { BucketWriteValue } from '../types/board';

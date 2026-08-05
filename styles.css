@@ -1,8 +1,315 @@
-/*
+/* Tasks Board — uses Obsidian's own CSS variables throughout; no hard-coded colours. */
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.tasks-board-shell {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	overflow: hidden;
+}
 
-If your plugin does not need CSS, delete this file.
+.tasks-board-tabstrip {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex-shrink: 0;
+}
 
-*/
+.tasks-board-tab {
+	background: transparent;
+	border: none;
+	padding: 4px 10px;
+	border-radius: var(--radius-s);
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.tasks-board-tab.is-active {
+	background: var(--background-modifier-active-hover);
+	color: var(--text-normal);
+	font-weight: 600;
+}
+
+.tasks-board-tab--add {
+	color: var(--text-faint);
+}
+
+.tasks-board-tabstrip__spacer {
+	flex: 1;
+}
+
+.tasks-board-warnings,
+.tasks-board-hidden-count {
+	padding: 4px 12px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-warning, var(--text-muted));
+	background: var(--background-secondary);
+}
+
+.tasks-board-lanes {
+	flex: 1;
+	overflow: auto;
+	padding: 8px;
+}
+
+.tasks-board-lane {
+	margin-bottom: 12px;
+}
+
+.tasks-board-lane__header {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 600;
+	padding: 4px 0;
+}
+
+.tasks-board-lane__collapse {
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	color: var(--text-muted);
+}
+
+.tasks-board-lane__columns {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	overflow-x: auto;
+}
+
+.tasks-board-column {
+	background: var(--background-secondary);
+	border-radius: var(--radius-m);
+	min-width: 260px;
+	max-width: 320px;
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	max-height: 100%;
+}
+
+.tasks-board-column--collapsed {
+	min-width: auto;
+}
+
+.tasks-board-column__header {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 10px;
+	font-weight: 600;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.tasks-board-column__collapse,
+.tasks-board-column__quick-add {
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	color: var(--text-muted);
+	font-size: var(--font-ui-medium);
+}
+
+.tasks-board-column__label {
+	flex: 1;
+}
+
+.tasks-board-column__count {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	background: var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 1px 6px;
+}
+
+.tasks-board-column__count--at-limit {
+	color: var(--text-on-accent);
+	background: var(--color-red);
+}
+
+.tasks-board-column__rollups {
+	display: flex;
+	gap: 8px;
+	padding: 4px 10px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+.tasks-board-card-list {
+	overflow-y: auto;
+	padding: 6px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-height: 24px;
+}
+
+.tasks-board-card-list--drop-end {
+	outline: 2px dashed var(--interactive-accent);
+	outline-offset: -2px;
+}
+
+.tasks-board-card {
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-left: 3px solid transparent;
+	border-radius: var(--radius-s);
+	padding: 6px 8px;
+	cursor: pointer;
+}
+
+.tasks-board-card:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+}
+
+.tasks-board-card--dragging {
+	opacity: 0.5;
+}
+
+.tasks-board-card--drop-before {
+	border-top: 2px solid var(--interactive-accent);
+}
+
+.tasks-board-card--blocked {
+	opacity: 0.55;
+}
+
+.tasks-board-card__row {
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+}
+
+.tasks-board-card__description {
+	flex: 1;
+	min-width: 0;
+}
+
+.tasks-board-card__description :is(p) {
+	margin: 0;
+}
+
+.tasks-board-card__edit {
+	flex: 1;
+	resize: vertical;
+	min-height: 2.4em;
+}
+
+.tasks-board-card__menu-btn {
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	color: var(--text-faint);
+}
+
+.tasks-board-card__chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-top: 4px;
+}
+
+.tasks-board-card__chip {
+	font-size: var(--font-ui-smaller);
+	background: var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	padding: 1px 6px;
+	color: var(--text-muted);
+}
+
+.tasks-board-chip--overdue {
+	color: var(--text-on-accent);
+	background: var(--color-red);
+}
+
+.tasks-board-chip--tags {
+	cursor: pointer;
+}
+
+.tasks-board-empty,
+.tasks-board-loading {
+	padding: 24px;
+	text-align: center;
+	color: var(--text-muted);
+}
+
+.tasks-board-error-panel {
+	padding: 24px;
+	max-width: 480px;
+	margin: 0 auto;
+	text-align: center;
+}
+
+.tasks-board-error-panel--parse {
+	max-width: 100%;
+	text-align: left;
+}
+
+.tasks-board-error-panel__editor {
+	width: 100%;
+	min-height: 240px;
+	font-family: var(--font-monospace);
+}
+
+.tasks-board-filter-panel,
+.tasks-board-settings-panel {
+	border-bottom: 1px solid var(--background-modifier-border);
+	padding: 8px 12px;
+	background: var(--background-secondary);
+}
+
+.tasks-board-filter-panel__header,
+.tasks-board-settings-panel__header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.tasks-board-filter-panel__textarea,
+.tasks-board-settings__json {
+	width: 100%;
+	font-family: var(--font-monospace);
+}
+
+.tasks-board-filter-panel__tag-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin: 4px 0;
+}
+
+.tasks-board-filter-panel__tag-btn.is-selected {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.tasks-board-settings__field {
+	display: block;
+	margin: 6px 0;
+}
+
+.tasks-board-settings__chip-toggles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.tasks-board-settings__error {
+	color: var(--text-error, var(--color-red));
+}
+
+/* Mobile / narrow layout (§12.9): horizontal snap-scroll, one column per viewport width,
+   lanes collapsed by default is handled in-code via laneCollapseDefault. */
+@media (max-width: 600px) {
+	.tasks-board-lane__columns {
+		scroll-snap-type: x mandatory;
+	}
+
+	.tasks-board-column {
+		min-width: 92vw;
+		max-width: 92vw;
+		scroll-snap-align: start;
+	}
+}
