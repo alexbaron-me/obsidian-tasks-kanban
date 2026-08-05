@@ -121,7 +121,9 @@ describe('bootstrapBoardFile', () => {
 		const buckets = board.views[0]!.columns.buckets!;
 		expect(buckets).toHaveLength(4);
 		expect(board.views[0]!.filters).toBe('');
-		expect(board.filters).toBe('not done');
+		// No board-level filter, so the Done/Cancelled buckets aren't self-defeated (see comment
+		// in bootstrapBoardFile).
+		expect(board.filters).toBe('');
 		expect(board.views[0]!.card.chips).toEqual(['due', 'priority', 'tags']);
 		expect(board.views[0]!.lanes).toBeNull();
 	});

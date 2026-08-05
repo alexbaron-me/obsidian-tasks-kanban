@@ -316,7 +316,13 @@ export function bootstrapBoardFile(
 ): BoardFile {
 	return {
 		version: 1,
-		filters: 'not done',
+		// No board-level "not done" filter: the bootstrapped Status view has explicit Done/
+		// Cancelled columns, and a board-level filter is ANDed with every view's, so it would
+		// make those columns unreachable — completed tasks would drop off the board entirely
+		// the moment they're marked done instead of landing in their column. Auto-hide (cascade
+		// setting, §9) already handles pruning old completed tasks after a configurable number
+		// of days.
+		filters: '',
 		settings: {},
 		views: [
 			{

@@ -24,7 +24,7 @@ export default class TasksBoardPlugin extends Plugin {
 
 		await this.tasksConfig.refresh();
 		const persisted: unknown = await this.loadData();
-		this.globalSettings = loadGlobalSettings(persisted, this.tasksConfig.get().taskFormat);
+		this.globalSettings = loadGlobalSettings(persisted, this.tasksConfig.get().taskFormat, this.tasksConfig.get().globalFilter);
 		if (persisted === null || persisted === undefined) {
 			// First-ever load: persist the seeded format immediately so it's visible in
 			// data.json and never re-derived from Tasks again (§5.3).

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyOrder, pruneOrder, recordOrder } from '../../src/board/order';
+import { applyOrder, computeDropPosition, pruneOrder, recordOrder } from '../../src/board/order';
 import { makeTask } from '../fixtures/tasks';
 
 describe('applyOrder', () => {
@@ -117,5 +117,56 @@ describe('recordOrder', () => {
 		const noId2 = makeTask({ id: '' });
 		const c = makeTask({ id: 'ccc' });
 		expect(recordOrder([a, noId1, noId2, c], 0)).toEqual({ id: 'aaa', before: 'ccc' });
+	});
+});
+
+describe('computeDropPosition', () => {
+	it('is a no-op when a card is dropped back at the end of the same bucket, already last', () => {
+		const a = makeTask({ id: 'aaa' });
+		const b = makeTask({ id: 'bbb' });
+		const result = computeDropPosition([a, b], b, null, true);
+		expect(result.isNoOp).toBe(true);
+		expect(result.newOrder).toEqual([a, b]);
+	});
+
+	it('is a no-op when dropped back immediately before the same next card', () => {
+		const a = makeTask({ id: 'aaa' });
+		const b = makeTask({ id: 'bbb' });
+		const c = makeTask({ id: 'ccc' });
+		const result = computeDropPosition([a, b, c], a, b, true);
+		expect(result.isNoOp).toBe(true);
+	});
+
+	it('is not a no-op for a genuine within-bucket reorder', () => {
+		const a = makeTask({ id: 'aaa' });
+		const b = makeTask({ id: 'bbb' });
+		const c = makeTask({ id: 'ccc' });
+		const result = computeDropPosition([a, b, c], c, a, true);
+		expect(result.isNoOp).toBe(false);
+		expect(result.newOrder).toEqual([c, a, b]);
+		expect(result.insertAt).toBe(0);
+	});
+
+	it('is never a no-op when the drop crosses buckets, even at the same visual position', () => {
+		const a = makeTask({ id: 'aaa' });
+		const result = computeDropPosition([a], a, null, false);
+		expect(result.isNoOp).toBe(false);
+	});
+
+	it('computes the correct insertAt and newOrder for a drop at the end', () => {
+		const a = makeTask({ id: 'aaa' });
+		const b = makeTask({ id: 'bbb' });
+		const result = computeDropPosition([a], b, null, false);
+		expect(result.newOrder).toEqual([a, b]);
+		expect(result.insertAt).toBe(1);
+	});
+
+	it('falls back to inserting at the end when insertBeforeTask is not found in the bucket', () => {
+		const a = makeTask({ id: 'aaa' });
+		const b = makeTask({ id: 'bbb' });
+		const ghost = makeTask({ id: 'ghost' });
+		const result = computeDropPosition([a], b, ghost, false);
+		expect(result.newOrder).toEqual([a, b]);
+		expect(result.insertAt).toBe(1);
 	});
 });

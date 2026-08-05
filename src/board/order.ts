@@ -72,3 +72,39 @@ export function recordOrder(orderedTasksAfterDrop: readonly Task[], draggedIndex
 	}
 	return { id: draggedId, last: true };
 }
+
+export interface DropPositionResult {
+	/** `bucketTasks` with `task` removed and reinserted at its dropped position. */
+	newOrder: Task[];
+	/** Index of `task` within `newOrder`. */
+	insertAt: number;
+	/** True when the drop landed back exactly where the card already was — same bucket, same
+	 * position — so nothing actually changed. Callers should treat this as a full no-op: no
+	 * write, no id assignment, no manual-order confirmation prompt (only a genuine reorder
+	 * should ever trigger those). */
+	isNoOp: boolean;
+}
+
+/**
+ * Computes where `task` lands within `bucketTasks` (that bucket's current, pre-drop order) given
+ * a drop that should insert it immediately before `insertBeforeTask` (or at the end, when null).
+ * Pass `sameBucket: false` when the drop crosses into a different bucket or lane — such a drop is
+ * never a no-op, even if the resulting position looks unchanged, because a field write still has
+ * to happen.
+ */
+export function computeDropPosition(
+	bucketTasks: readonly Task[],
+	task: Task,
+	insertBeforeTask: Task | null,
+	sameBucket: boolean,
+): DropPositionResult {
+	const without = bucketTasks.filter((t) => t !== task);
+	const rawInsertAt = insertBeforeTask ? without.indexOf(insertBeforeTask) : -1;
+	const insertAt = rawInsertAt === -1 ? without.length : rawInsertAt;
+	const newOrder = [...without];
+	newOrder.splice(insertAt, 0, task);
+
+	const isNoOp = sameBucket && newOrder.length === bucketTasks.length && newOrder.every((t, i) => t === bucketTasks[i]);
+
+	return { newOrder, insertAt, isNoOp };
+}
