@@ -126,6 +126,20 @@ export function BoardShell(props: BoardShellProps) {
 		props.openTaskFile(task);
 	}
 
+	function removeOrderOverride(task: Task) {
+		if (!view || !data || !task.id) return;
+		const allLanesFlat = data.lanes.flatMap((l) => (l.nested ? [l, ...l.nested] : [l]));
+		for (const lane of allLanesFlat) {
+			for (const column of lane.columns) {
+				if (!column.tasks.includes(task)) continue;
+				const bucketId = column.bucket.id;
+				const remaining = (view.order[bucketId] ?? []).filter((o) => o.id !== task.id);
+				props.boardModel.setOrder(viewIndex, bucketId, remaining);
+				return;
+			}
+		}
+	}
+
 	async function quickAdd(laneId: string, bucketId: string) {
 		if (!view) return;
 		const column = data?.lanes.find((l) => l.id === laneId)?.columns.find((c) => c.bucket.id === bucketId);
@@ -315,11 +329,13 @@ export function BoardShell(props: BoardShellProps) {
 							accentRules={accentRules}
 							clickAction={resolved.clickAction}
 							taskWriter={props.taskWriter}
+							postponeField={resolved.postponeField}
 							collapseDefault={resolved.laneCollapseDefault}
 							onToggleDone={(t) => void toggleDone(t)}
 							onEdit={(t) => void editTask(t)}
 							onOpenFile={openFile}
 							onQuickAdd={(lId, col) => void quickAdd(lId, col.bucket.id)}
+							onRemoveOrderOverride={removeOrderOverride}
 						/>
 					))}
 				</div>

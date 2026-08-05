@@ -1,9 +1,9 @@
 import type { App } from 'obsidian';
-import { Menu, Notice } from 'obsidian';
+import { Menu, Notice, moment } from 'obsidian';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useState } from 'preact/hooks';
 import type { JSX, Ref } from 'preact';
-import type { Task } from '../../types/tasks';
+import type { Task, PriorityName } from '../../types/tasks';
 import type { ChipKind } from '../../types/board';
 import type { QueryContext } from '../../query/context';
 import { buildChips, isBlockedDimmed } from '../../board/chips';
@@ -19,10 +19,13 @@ export interface CardProps {
 	accent: AccentRule | null;
 	clickAction: 'file' | 'modal' | 'preview' | 'none';
 	taskWriter: TaskWriter;
+	/** Which date field postpone acts on (cascaded setting, default "due"). */
+	postponeField?: 'due' | 'scheduled';
 	onToggleDone: (task: Task) => void;
 	onEdit: (task: Task) => void;
 	onOpenFile: (task: Task) => void;
 	onTagClick?: (tag: string) => void;
+	onRemoveOrderOverride?: (task: Task) => void;
 	dragDisabled?: boolean;
 }
 
@@ -63,12 +66,59 @@ export function CardView(props: CardViewProps) {
 		else if (props.clickAction === 'modal') props.onEdit(task);
 	}
 
+	function postpone(days: number) {
+		const field = props.postponeField ?? 'due';
+		const base = task[field].moment ?? moment();
+		void props.taskWriter.setDate(task, field, base.clone().add(days, 'day'));
+	}
+
+	function postponeCustom() {
+		const field = props.postponeField ?? 'due';
+		const input = window.prompt('Postpone to (YYYY-MM-DD or a natural date like "next friday"):');
+		if (!input) return;
+		const parsed = moment(input, 'YYYY-MM-DD', true);
+		void props.taskWriter.setDate(task, field, parsed.isValid() ? parsed : moment(input));
+	}
+
+	function setPriority(priority: PriorityName) {
+		void props.taskWriter.setPriority(task, priority);
+	}
+
+	function copyObsidianLink() {
+		const link = `obsidian://open?file=${encodeURIComponent(task.file.path)}`;
+		void navigator.clipboard.writeText(link);
+		new Notice('Copied link to task’s note');
+	}
+
+	function openInSplit() {
+		void props.app.workspace.getLeaf('split').openFile(
+			props.app.vault.getFileByPath(task.file.path) as never,
+			{ eState: { line: task.taskLocation.lineNumber } },
+		);
+	}
+
 	function handleContextMenu(e: MouseEvent) {
 		e.preventDefault();
 		const menu = new Menu();
 		menu.addItem((item) => item.setTitle(isDone ? 'Mark not done' : 'Mark done').onClick(() => props.onToggleDone(task)));
+		menu.addItem((item) => item.setTitle('Postpone +1 day').onClick(() => postpone(1)));
+		menu.addItem((item) => item.setTitle('Postpone +1 week').onClick(() => postpone(7)));
+		menu.addItem((item) => item.setTitle('Postpone to…').onClick(() => postponeCustom()));
+		menu.addSeparator();
+		menu.addItem((item) => item.setTitle('Priority: highest').onClick(() => setPriority('highest')));
+		menu.addItem((item) => item.setTitle('Priority: high').onClick(() => setPriority('high')));
+		menu.addItem((item) => item.setTitle('Priority: medium').onClick(() => setPriority('medium')));
+		menu.addItem((item) => item.setTitle('Priority: low').onClick(() => setPriority('low')));
+		menu.addItem((item) => item.setTitle('Priority: none').onClick(() => setPriority('none')));
+		menu.addSeparator();
 		menu.addItem((item) => item.setTitle('Edit task…').onClick(() => props.onEdit(task)));
 		menu.addItem((item) => item.setTitle('Open source note').onClick(() => props.onOpenFile(task)));
+		menu.addItem((item) => item.setTitle('Open in split').onClick(() => openInSplit()));
+		menu.addItem((item) => item.setTitle('Copy Obsidian link').onClick(() => copyObsidianLink()));
+		if (task.id && props.onRemoveOrderOverride) {
+			menu.addSeparator();
+			menu.addItem((item) => item.setTitle('Remove manual order override').onClick(() => props.onRemoveOrderOverride?.(task)));
+		}
 		menu.showAtMouseEvent(e);
 	}
 

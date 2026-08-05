@@ -1,0 +1,23 @@
+version: 1
+filters: not done
+settings: {}
+views:
+  - name: Status
+    filters: ""
+    sort: ""
+    settings: {}
+    columns:
+      field: status
+      generator: explicit
+      buckets:
+        - name: To Do
+          match: [" "]
+        - name: In Progress
+          match: ["/"]
+        - name: Done
+          match: ["x"]
+      overrides: {}
+    lanes: null
+    card:
+      chips: [due, priority, tags]
+    order: {}

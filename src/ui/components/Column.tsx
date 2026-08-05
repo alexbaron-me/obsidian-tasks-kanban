@@ -17,11 +17,13 @@ export interface ColumnProps {
 	accentRules: CompiledAccentRule[];
 	clickAction: 'file' | 'modal' | 'preview' | 'none';
 	taskWriter: TaskWriter;
+	postponeField?: 'due' | 'scheduled';
 	onToggleDone: (task: Task) => void;
 	onEdit: (task: Task) => void;
 	onOpenFile: (task: Task) => void;
 	onTagClick?: (tag: string) => void;
 	onQuickAdd: (column: RenderedColumn) => void;
+	onRemoveOrderOverride?: (task: Task) => void;
 }
 
 function urgencySum(tasks: readonly Task[]): number {
@@ -77,10 +79,12 @@ export function Column(props: ColumnProps) {
 					accentRules={props.accentRules}
 					clickAction={props.clickAction}
 					taskWriter={props.taskWriter}
+					postponeField={props.postponeField}
 					onToggleDone={props.onToggleDone}
 					onEdit={props.onEdit}
 					onOpenFile={props.onOpenFile}
 					onTagClick={props.onTagClick}
+					onRemoveOrderOverride={props.onRemoveOrderOverride}
 				/>
 			) : null}
 		</div>

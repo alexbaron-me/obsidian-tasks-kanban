@@ -18,10 +18,12 @@ export interface CardListProps {
 	accentRules: CompiledAccentRule[];
 	clickAction: 'file' | 'modal' | 'preview' | 'none';
 	taskWriter: TaskWriter;
+	postponeField?: 'due' | 'scheduled';
 	onToggleDone: (task: Task) => void;
 	onEdit: (task: Task) => void;
 	onOpenFile: (task: Task) => void;
 	onTagClick?: (tag: string) => void;
+	onRemoveOrderOverride?: (task: Task) => void;
 }
 
 export function CardList(props: CardListProps) {
@@ -45,10 +47,12 @@ export function CardList(props: CardListProps) {
 					accent={matchAccent(props.accentRules, task, props.ctx)}
 					clickAction={props.clickAction}
 					taskWriter={props.taskWriter}
+					postponeField={props.postponeField}
 					onToggleDone={props.onToggleDone}
 					onEdit={props.onEdit}
 					onOpenFile={props.onOpenFile}
 					onTagClick={props.onTagClick}
+					onRemoveOrderOverride={props.onRemoveOrderOverride}
 				/>
 			))}
 		</div>

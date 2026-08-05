@@ -16,12 +16,14 @@ export interface LaneProps {
 	accentRules: CompiledAccentRule[];
 	clickAction: 'file' | 'modal' | 'preview' | 'none';
 	taskWriter: TaskWriter;
+	postponeField?: 'due' | 'scheduled';
 	collapseDefault: boolean;
 	onToggleDone: (task: Task) => void;
 	onEdit: (task: Task) => void;
 	onOpenFile: (task: Task) => void;
 	onTagClick?: (tag: string) => void;
 	onQuickAdd: (laneId: string, column: RenderedColumn) => void;
+	onRemoveOrderOverride?: (task: Task) => void;
 }
 
 export function Lane(props: LaneProps) {
@@ -57,11 +59,13 @@ export function Lane(props: LaneProps) {
 							accentRules={props.accentRules}
 							clickAction={props.clickAction}
 							taskWriter={props.taskWriter}
+							postponeField={props.postponeField}
 							onToggleDone={props.onToggleDone}
 							onEdit={props.onEdit}
 							onOpenFile={props.onOpenFile}
 							onTagClick={props.onTagClick}
 							onQuickAdd={(col) => props.onQuickAdd(lane.id, col)}
+							onRemoveOrderOverride={props.onRemoveOrderOverride}
 						/>
 					))}
 				</div>
@@ -77,12 +81,14 @@ export function Lane(props: LaneProps) {
 							accentRules={props.accentRules}
 							clickAction={props.clickAction}
 							taskWriter={props.taskWriter}
+							postponeField={props.postponeField}
 							collapseDefault={props.collapseDefault}
 							onToggleDone={props.onToggleDone}
 							onEdit={props.onEdit}
 							onOpenFile={props.onOpenFile}
 							onTagClick={props.onTagClick}
 							onQuickAdd={props.onQuickAdd}
+							onRemoveOrderOverride={props.onRemoveOrderOverride}
 						/>
 					))
 				: null}

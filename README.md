@@ -1,92 +1,62 @@
-# Obsidian Sample Plugin
+# Tasks Board
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+A Kanban board for Obsidian whose cards are your real tasks — the `- [ ]` lines already scattered
+across your vault — sourced live from the [Obsidian Tasks](https://publish.obsidian.md/tasks/)
+plugin's cache. The board is a view, never a copy: moving a card writes a field into the task's
+source line, and deleting a board deletes no tasks.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+Boards live in `.board` files (YAML), each holding one or more views: a tab strip, a filter
+button, and a settings panel, in deliberate imitation of Obsidian Bases.
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
+**Hard dependency:** the [Tasks plugin](https://github.com/obsidian-tasks-group/obsidian-tasks)
+must be installed and enabled. Without it, every board renders a single error panel with an
+install link — there is no degraded mode.
 
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and outputs a Notice on click.
-- Registers a global interval which logs 'setInterval' to the console.
+## Status
 
-## First time developing plugins?
+Implements the full specification this repo was built from: query engine, board schema and YAML
+round-trip, all three column generators (explicit / rolling / auto), manual ordering, swimlanes,
+the write layer (including recurring-task completion via the Tasks API), settings cascade,
+drag-and-drop, and `.board` embedding.
 
-Quick starting guide for new plugin devs:
+**Known gap:** `Shift+←/→/↑/↓` keyboard shortcuts for moving a card between columns or
+reordering it within a bucket are not wired up; the equivalent is available via mouse
+drag-and-drop and the card context menu. Everything else in the interaction model (`Space` to
+toggle done, `Enter` for the click action, `E` to edit, arrow-key focus movement, right-click
+menu, quick-add, postpone, the `tasks-board://` URI handler) is implemented.
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `src/main.ts` to `main.js`.
-- Make changes to `src/main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+## Development
 
-## Releasing new releases
-
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
-
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
-
-## Adding your plugin to the community plugin list
-
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
-
-## How to use
-
-- Clone this repo.
-- Make sure your NodeJS is at least v18 (`node --version`).
-- `npm i` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
-
-## Manually installing the plugin
-
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
-
-## Improve code quality with eslint
-
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code.
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
-
-## Funding URL
-
-You can include funding URLs where people who use your plugin can financially support it.
-
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
-
-```json
-{
-	"fundingUrl": "https://buymeacoffee.com"
-}
+```bash
+npm install
+npm run dev      # esbuild watch mode
+npm run build    # typecheck + production build
+npm test         # vitest — 360+ tests
+npm run lint      # eslint
 ```
 
-If you have multiple URLs, you can also do:
+To try it in a real vault: copy `main.js`, `manifest.json`, `styles.css` into
+`<Vault>/.obsidian/plugins/tasks-board/`, or symlink this repo there during development.
 
-```json
-{
-	"fundingUrl": {
-		"Buy Me a Coffee": "https://buymeacoffee.com",
-		"GitHub Sponsor": "https://github.com/sponsors",
-		"Patreon": "https://www.patreon.com/"
-	}
-}
-```
+`test-vault/` is a small fixture vault (Tasks plugin config, ~50 tasks across the shapes named in
+the spec's testing section, and three `.board` files — minimal, full, and deliberately malformed)
+for manual verification inside a real copy of Obsidian.
 
-## API Documentation
+## Architecture
 
-See https://docs.obsidian.md
+- `src/query/` — the instruction-grammar engine (lexer → parser → compiler) shared by board
+  filters, sort, group, and accent rules. See `docs/query-syntax.md`.
+- `src/model/` — `.board` YAML schema/validation and the `BoardStore`/`BoardModel` that own
+  comment-preserving round-trip persistence.
+- `src/board/` — bucket generation, manual order, swimlanes, auto-hide, accent matching, chips,
+  and the drop-decision logic, all independent of any UI framework.
+- `src/write/` — the single write path for task mutations (`TaskWriter`), field serialisation in
+  either the Tasks emoji or Dataview format (`FieldWriter`), and id generation.
+- `src/integration/` — reads from the Tasks plugin's cache/config/API. See
+  `src/integration/NOTICE.md` for attribution on the cache-subscription technique.
+- `src/ui/` — the Preact render tree (`renderBoard` is the single leaf-free entry point shared by
+  the `TextFileView` shell and the embed/codeblock path) and the global settings tab.
+
+## License
+
+0BSD — see `LICENSE`.
