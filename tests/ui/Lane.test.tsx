@@ -8,10 +8,14 @@ import { FieldWriter } from '../../src/write/FieldWriter';
 import { TasksApi } from '../../src/integration/TasksApi';
 import { TasksCache } from '../../src/integration/TasksCache';
 import type { RenderedLane } from '../../src/board/renderPipeline';
+import type { CanonicalColumn } from '../../src/board/laneGrid';
 import type { QueryContext } from '../../src/query/context';
+import { makeTask } from '../fixtures/tasks';
 
 vi.mock('../../src/ui/components/Column', () => ({
-	Column: (props: { column: { bucket: { id: string } } }) => <div data-testid={`column-${props.column.bucket.id}`} />,
+	Column: (props: { column: { bucket: { id: string } } | null }) => (
+		<div data-testid={props.column ? `column-${props.column.bucket.id}` : 'column-empty'} />
+	),
 }));
 
 afterEach(cleanup);
@@ -26,63 +30,73 @@ function ctx(): QueryContext {
 	};
 }
 
-function renderLane(lane: RenderedLane, collapseDefault = false) {
+const oneColumn: CanonicalColumn[] = [{ id: 'Doing', label: 'Doing' }];
+
+function renderLane(overrides: Partial<Parameters<typeof Lane>[0]> & { lane: RenderedLane }) {
 	const app = new App();
 	const taskWriter = new TaskWriter(app, new FieldWriter('emoji'), new TasksApi(app), new TasksCache(app));
 	return render(
 		<Lane
 			app={app}
-			lane={lane}
+			depth={0}
+			isGroupHeading={false}
+			showHeader={true}
+			columns={oneColumn}
 			chips={[]}
 			ctx={ctx()}
 			accentRules={[]}
 			clickAction="file"
 			taskWriter={taskWriter}
-			collapseDefault={collapseDefault}
+			collapseDefault={false}
 			onToggleDone={() => {}}
 			onEdit={() => {}}
 			onOpenFile={() => {}}
 			onQuickAdd={() => {}}
+			{...overrides}
 		/>,
 	);
 }
 
 describe('Lane', () => {
-	it('renders a header and label for a named lane', () => {
-		const lane: RenderedLane = { id: 'high', label: 'High priority', columns: [], nested: null };
-		renderLane(lane);
-		expect(screen.getByText('High priority')).toBeTruthy();
-	});
-
-	it('renders no header for the ungrouped lane', () => {
-		const lane: RenderedLane = { id: '__all__', label: '', columns: [], nested: null };
-		const { container } = renderLane(lane);
-		expect(container.querySelector('.tasks-board-lane__header')).toBeFalsy();
-	});
-
-	it('renders one stubbed Column per bucket', () => {
+	it('renders a header bar with the label and issue count for a named lane', () => {
 		const lane: RenderedLane = {
 			id: 'high',
-			label: 'High',
-			columns: [
-				{ bucket: { id: 'Doing', label: 'Doing', writeValue: null, override: {} }, tasks: [] },
-				{ bucket: { id: 'Done', label: 'Done', writeValue: null, override: {} }, tasks: [] },
-			],
+			label: 'High priority',
+			columns: [{ bucket: { id: 'Doing', label: 'Doing', writeValue: null, override: {} }, tasks: [makeTask()] }],
 			nested: null,
 		};
-		renderLane(lane);
-		expect(screen.getByTestId('column-Doing')).toBeTruthy();
-		expect(screen.getByTestId('column-Done')).toBeTruthy();
+		renderLane({ lane });
+		expect(screen.getByText('High priority')).toBeTruthy();
+		expect(screen.getByText('1 issue')).toBeTruthy();
 	});
 
-	it('collapsing the lane hides its columns', () => {
+	it('renders no header bar when showHeader is false (the ungrouped lane)', () => {
+		const lane: RenderedLane = { id: '__all__', label: '', columns: [], nested: null };
+		const { container } = renderLane({ lane, showHeader: false });
+		expect(container.querySelector('.tasks-board-grid__lane-header')).toBeFalsy();
+	});
+
+	it('renders one stubbed Column per canonical column, matched by bucket id', () => {
 		const lane: RenderedLane = {
 			id: 'high',
 			label: 'High',
 			columns: [{ bucket: { id: 'Doing', label: 'Doing', writeValue: null, override: {} }, tasks: [] }],
 			nested: null,
 		};
-		renderLane(lane);
+		renderLane({ lane, columns: [{ id: 'Doing', label: 'Doing' }, { id: 'Done', label: 'Done' }] });
+		expect(screen.getByTestId('column-Doing')).toBeTruthy();
+		// The lane has no bucket for "Done" — Column still renders, as an empty-slot cell.
+		expect(screen.getByTestId('column-empty')).toBeTruthy();
+	});
+
+	it('collapsing the lane hides its cells', () => {
+		const lane: RenderedLane = {
+			id: 'high',
+			label: 'High',
+			columns: [{ bucket: { id: 'Doing', label: 'Doing', writeValue: null, override: {} }, tasks: [] }],
+			nested: null,
+		};
+		renderLane({ lane });
 		expect(screen.getByTestId('column-Doing')).toBeTruthy();
 		fireEvent.click(screen.getByRole('button', { name: /collapse lane/i }));
 		expect(screen.queryByTestId('column-Doing')).toBeFalsy();
@@ -95,21 +109,21 @@ describe('Lane', () => {
 			columns: [{ bucket: { id: 'Doing', label: 'Doing', writeValue: null, override: {} }, tasks: [] }],
 			nested: null,
 		};
-		renderLane(lane, true);
+		renderLane({ lane, collapseDefault: true });
 		expect(screen.queryByTestId('column-Doing')).toBeFalsy();
 	});
 
-	it('renders nested lanes recursively', () => {
+	it('renders a plain section heading with no cells for a group-heading row', () => {
 		const lane: RenderedLane = {
-			id: 'high',
-			label: 'High',
-			columns: [],
-			nested: [
-				{ id: 'work', label: 'Work', columns: [{ bucket: { id: 'Doing', label: 'Doing', writeValue: null, override: {} }, tasks: [] }], nested: null },
-			],
+			id: 'alice',
+			label: 'Alice',
+			columns: [{ bucket: { id: 'Doing', label: 'Doing', writeValue: null, override: {} }, tasks: [] }],
+			nested: [],
 		};
-		renderLane(lane);
-		expect(screen.getByText('Work')).toBeTruthy();
-		expect(screen.getByTestId('column-Doing')).toBeTruthy();
+		const { container } = renderLane({ lane, isGroupHeading: true });
+		expect(screen.getByText('Alice')).toBeTruthy();
+		expect(container.querySelector('.tasks-board-grid__group-heading')).toBeTruthy();
+		expect(screen.queryByTestId('column-Doing')).toBeFalsy();
+		expect(container.querySelector('.tasks-board-grid__lane-header')).toBeFalsy();
 	});
 });

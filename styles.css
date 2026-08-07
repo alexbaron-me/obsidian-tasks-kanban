@@ -47,93 +47,155 @@
 	background: var(--background-secondary);
 }
 
-.tasks-board-lanes {
+/* Jira-style swimlane grid: one shared column-header row (position: sticky) followed by every
+   lane as a full-width header bar plus one cell per column, all as direct children of this grid
+   so the header and every lane's cells share the exact same column tracks and stay aligned while
+   scrolling. `gap` + a border-colour background is used as thin grid lines, Jira-board style. */
+.tasks-board-grid {
 	flex: 1;
 	overflow: auto;
-	padding: 8px;
+	display: grid;
+	grid-template-columns: repeat(var(--tasks-board-columns-count, 1), minmax(240px, 1fr));
+	/* Default (stretch): every cell in a lane's row grows to match that row's tallest cell, so a
+	   lane's cards line up in a clean rectangle instead of leaving a jagged, line-coloured gap
+	   under the shorter columns. */
+	gap: 1px;
+	background: var(--background-modifier-border);
+	padding: 0 0 1px;
 }
 
-.tasks-board-lane {
-	margin-bottom: 12px;
+/* Makes the header cells direct grid items of `.tasks-board-grid` (so they share its column
+   tracks) without introducing an extra box of their own. */
+.tasks-board-grid__header {
+	display: contents;
 }
 
-.tasks-board-lane__header {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	font-weight: 600;
-	padding: 4px 0;
-}
-
-.tasks-board-lane__collapse {
-	background: transparent;
-	border: none;
-	cursor: pointer;
-	color: var(--text-muted);
-}
-
-.tasks-board-lane__columns {
-	display: flex;
-	gap: 10px;
-	align-items: flex-start;
-	overflow-x: auto;
-}
-
-.tasks-board-column {
+.tasks-board-grid__header-cell {
+	position: sticky;
+	top: 0;
+	z-index: 2;
 	background: var(--background-secondary);
-	border-radius: var(--radius-m);
-	min-width: 260px;
-	max-width: 320px;
-	flex-shrink: 0;
-	display: flex;
-	flex-direction: column;
-	max-height: 100%;
-}
-
-.tasks-board-column--collapsed {
-	min-width: auto;
-}
-
-.tasks-board-column__header {
-	display: flex;
-	align-items: center;
-	gap: 6px;
 	padding: 8px 10px;
 	font-weight: 600;
-	border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.tasks-board-column__collapse,
-.tasks-board-column__quick-add {
-	background: transparent;
-	border: none;
-	cursor: pointer;
-	color: var(--text-muted);
-	font-size: var(--font-ui-medium);
+.tasks-board-grid__header-top {
+	display: flex;
+	align-items: center;
+	gap: 6px;
 }
 
-.tasks-board-column__label {
+.tasks-board-grid__header-label {
 	flex: 1;
+	text-transform: uppercase;
+	font-size: var(--font-ui-small);
+	letter-spacing: 0.02em;
+	color: var(--text-muted);
 }
 
-.tasks-board-column__count {
+.tasks-board-grid__header-count {
 	font-size: var(--font-ui-smaller);
+	font-weight: 600;
 	color: var(--text-muted);
 	background: var(--background-modifier-border);
 	border-radius: var(--radius-s);
 	padding: 1px 6px;
 }
 
-.tasks-board-column__count--at-limit {
+.tasks-board-grid__header-count--at-limit {
 	color: var(--text-on-accent);
 	background: var(--color-red);
 }
 
-.tasks-board-column__rollups {
+.tasks-board-grid__header-rollups {
 	display: flex;
 	gap: 8px;
-	padding: 4px 10px;
+	margin-top: 4px;
 	font-size: var(--font-ui-smaller);
+	font-weight: 400;
+	color: var(--text-muted);
+}
+
+.tasks-board-grid__group-heading {
+	grid-column: 1 / -1;
+	padding: 10px 10px 2px;
+	font-size: var(--font-ui-smaller);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	color: var(--text-faint);
+	background: var(--background-primary);
+}
+
+.tasks-board-grid__lane-header {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	background: var(--background-primary);
+	border: none;
+	padding: 8px 10px;
+	font-weight: 600;
+	text-align: left;
+	cursor: pointer;
+}
+
+.tasks-board-grid__lane-header:hover {
+	background: var(--background-modifier-hover);
+}
+
+.tasks-board-grid__lane-collapse {
+	color: var(--text-muted);
+	width: 1em;
+}
+
+.tasks-board-grid__lane-avatar {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	flex-shrink: 0;
+	border-radius: 50%;
+	background: hsl(var(--tasks-board-lane-hue, 200), 45%, 42%);
+	color: #fff;
+	font-size: var(--font-ui-smaller);
+	font-weight: 700;
+}
+
+.tasks-board-grid__lane-label {
+	flex: 1;
+}
+
+.tasks-board-grid__lane-count {
+	font-size: var(--font-ui-smaller);
+	font-weight: 400;
+	color: var(--text-muted);
+}
+
+.tasks-board-cell {
+	background: var(--background-secondary);
+	display: flex;
+	flex-direction: column;
+	min-height: 40px;
+}
+
+.tasks-board-cell--empty {
+	opacity: 0.5;
+}
+
+.tasks-board-cell__quick-add {
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	color: var(--text-faint);
+	text-align: left;
+	padding: 4px 10px 8px;
+	font-size: var(--font-ui-smaller);
+}
+
+.tasks-board-cell__quick-add:hover {
 	color: var(--text-muted);
 }
 
@@ -371,16 +433,19 @@
 	width: 5em;
 }
 
-/* Mobile / narrow layout (§12.9): horizontal snap-scroll, one column per viewport width,
-   lanes collapsed by default is handled in-code via laneCollapseDefault. */
+/* Mobile / narrow layout (§12.9): horizontal snap-scroll, one column per viewport width, lanes
+   collapsed by default is handled in-code via laneCollapseDefault. The column count itself comes
+   from the inline `--tasks-board-columns-count` custom property (set in BoardShell.tsx) — only
+   the *track size* differs here, so it must stay a plain stylesheet property (not inline) for
+   this override to actually win over the desktop rule. */
 @media (max-width: 600px) {
-	.tasks-board-lane__columns {
+	.tasks-board-grid {
+		grid-template-columns: repeat(var(--tasks-board-columns-count, 1), 92vw);
 		scroll-snap-type: x mandatory;
 	}
 
-	.tasks-board-column {
-		min-width: 92vw;
-		max-width: 92vw;
+	.tasks-board-grid__header-cell,
+	.tasks-board-cell {
 		scroll-snap-align: start;
 	}
 }
