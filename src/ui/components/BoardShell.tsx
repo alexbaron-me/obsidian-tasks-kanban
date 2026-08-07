@@ -1,6 +1,7 @@
 import type { App, TFile } from 'obsidian';
 import { Notice } from 'obsidian';
 import { useMemo, useState } from 'preact/hooks';
+import { createPortal } from 'preact/compat';
 import {
 	DndContext,
 	DragOverlay,
@@ -369,29 +370,40 @@ export function BoardShell(props: BoardShellProps) {
 						/>
 					))}
 				</div>
-				<DragOverlay dropAnimation={null}>
-					{activeTask ? (
-						<CardView
-							app={props.app}
-							task={activeTask}
-							chips={view.card.chips}
-							ctx={ctx}
-							accent={matchAccent(accentRules, activeTask, ctx)}
-							clickAction={resolved.clickAction}
-							taskWriter={props.taskWriter}
-							globalFilterTag={globalFilterTag}
-							onToggleDone={() => {}}
-							onEdit={() => {}}
-							onOpenFile={() => {}}
-							nodeRef={() => {}}
-							extraClass=" tasks-board-card--overlay"
-							style={{}}
-							dragListeners={{}}
-							dragAttributes={{}}
-							dragDisabled
-						/>
-					) : null}
-				</DragOverlay>
+				{createPortal(
+					// dnd-kit's DragOverlay positions itself with `position: fixed` but renders
+					// inline in the component tree rather than portaling on its own — if any
+					// ancestor between here and <body> has a CSS transform (Obsidian's workspace
+					// panes routinely do, for split/resize animations), that becomes the fixed
+					// element's containing block instead of the viewport, throwing the overlay's
+					// position off by however far that ancestor sits from the true origin.
+					// Portaling straight to document.body sidesteps that; DndContext's own React
+					// context still reaches it since portals don't break context propagation.
+					<DragOverlay dropAnimation={null}>
+						{activeTask ? (
+							<CardView
+								app={props.app}
+								task={activeTask}
+								chips={view.card.chips}
+								ctx={ctx}
+								accent={matchAccent(accentRules, activeTask, ctx)}
+								clickAction={resolved.clickAction}
+								taskWriter={props.taskWriter}
+								globalFilterTag={globalFilterTag}
+								onToggleDone={() => {}}
+								onEdit={() => {}}
+								onOpenFile={() => {}}
+								nodeRef={() => {}}
+								extraClass=" tasks-board-card--overlay"
+								style={{}}
+								dragListeners={{}}
+								dragAttributes={{}}
+								dragDisabled
+							/>
+						) : null}
+					</DragOverlay>,
+					document.body,
+				)}
 			</DndContext>
 		</div>
 	);
