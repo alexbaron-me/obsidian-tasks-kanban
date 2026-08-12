@@ -47,10 +47,11 @@
 	background: var(--background-secondary);
 }
 
-/* Jira-style swimlane grid: one shared column-header row (position: sticky) followed by every
-   lane as a full-width header bar plus one cell per column, all as direct children of this grid
-   so the header and every lane's cells share the exact same column tracks and stay aligned while
-   scrolling. `gap` + a border-colour background is used as thin grid lines, Jira-board style. */
+/* Swimlane grid: one shared, minimal column-header row (position: sticky) followed by every lane
+   as a full-width header bar plus one cell per column, all as direct children of this grid so the
+   header and every lane's cells share the exact same column tracks and stay aligned while
+   scrolling. Only the lane header bars borrow Jira's look (avatar, chevron, "N issues") — the
+   column headers stay plain. `gap` + a border-colour background is used as thin grid lines. */
 .tasks-board-grid {
 	flex: 1;
 	overflow: auto;
@@ -70,13 +71,14 @@
 	display: contents;
 }
 
+/* Deliberately minimal — only the swimlanes below borrow Jira's look (avatar, chevron, "N
+   issues"); the column headers stay as plain, low-key labels like the rest of the plugin. */
 .tasks-board-grid__header-cell {
 	position: sticky;
 	top: 0;
 	z-index: 2;
 	background: var(--background-secondary);
-	padding: 8px 10px;
-	font-weight: 600;
+	padding: 4px 10px;
 }
 
 .tasks-board-grid__header-top {
@@ -87,19 +89,16 @@
 
 .tasks-board-grid__header-label {
 	flex: 1;
-	text-transform: uppercase;
-	font-size: var(--font-ui-small);
-	letter-spacing: 0.02em;
+	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
 }
 
 .tasks-board-grid__header-count {
 	font-size: var(--font-ui-smaller);
-	font-weight: 600;
 	color: var(--text-muted);
 	background: var(--background-modifier-border);
 	border-radius: var(--radius-s);
-	padding: 1px 6px;
+	padding: 0 5px;
 }
 
 .tasks-board-grid__header-count--at-limit {
