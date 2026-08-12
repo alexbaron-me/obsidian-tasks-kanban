@@ -18,7 +18,7 @@ import type { Task, TaskStatus } from '../../types/tasks';
 import type { ViewConfig } from '../../types/board';
 import { computeBoardData } from '../../board/renderPipeline';
 import { compileAccentRules, matchAccent } from '../../board/accent';
-import { laneGroupField, laneWriteValueFor } from '../../board/laneWrite';
+import { laneGroupField, laneWriteValueFor, UNGROUPED_LANE_ID } from '../../board/swimlanes';
 import { decideDrop, executeDrop, fieldWriterTransform } from '../../board/dropController';
 import { computeDropPosition, recordOrder } from '../../board/order';
 import { generateTaskId } from '../../write/ids';
@@ -28,8 +28,8 @@ import type { FieldWriter } from '../../write/FieldWriter';
 import type { QueryContext } from '../../query/context';
 import type { GlobalSettings } from '../../settings/GlobalSettings';
 import { resolveSettings } from '../../settings/cascade';
-import { canonicalColumns, columnTasksAcrossRows, flattenLanes } from '../../board/laneGrid';
-import { Lane } from './Lane';
+import { columnTasks, flattenSwimlanes, gridColumns } from '../../board/boardGrid';
+import { Swimlane } from './Swimlane';
 import { ColumnHeader } from './ColumnHeader';
 import { CardView } from './Card';
 import { openBoardSettingsModal } from '../BoardSettingsModal';
@@ -113,12 +113,12 @@ export function BoardShell(props: BoardShellProps) {
 		return computeBoardData(boardFile, view, props.allTasks, ctx, resolved);
 	}, [boardFile, view, props.allTasks, ctx, resolved]);
 
-	// Jira-style grid (§ swimlane redesign): one shared column-header row on top, then every
-	// swimlane as a horizontal band beneath it, all sharing the same grid column tracks so
-	// everything lines up — see `.tasks-board-grid` in styles.css.
-	const flatRows = useMemo(() => flattenLanes(data?.lanes ?? []), [data]);
-	const gridColumns = useMemo(() => canonicalColumns(flatRows), [flatRows]);
-	const showLaneHeaders = !(flatRows.length === 1 && flatRows[0]!.lane.id === '__all__');
+	// One shared column-header row on top, then every swimlane as a horizontal band beneath it —
+	// all direct children of a single grid, so the headers and every lane's cells share one set of
+	// column tracks and stay aligned while scrolling. See `.tasks-board-grid` in styles.css.
+	const rows = useMemo(() => flattenSwimlanes(data?.lanes ?? []), [data]);
+	const columns = useMemo(() => gridColumns(rows), [rows]);
+	const showLaneHeaders = !(rows.length === 1 && rows[0]!.lane.id === UNGROUPED_LANE_ID);
 
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -147,12 +147,12 @@ export function BoardShell(props: BoardShellProps) {
 		props.openTaskFile(task);
 	}
 
-	// Group-heading rows (see laneGrid.flattenLanes) carry the full, pre-split task set purely for
+	// Section rows (see boardGrid.flattenSwimlanes) carry the full, pre-split task set purely for
 	// display bookkeeping — they're never rendered as real cells/droppables, so every lookup below
 	// that resolves a task or a drop target to a specific lane+bucket must search leaf lanes only.
 	// Otherwise a nested-lane board could resolve a drop against the parent's redundant column
 	// instead of the actual nested one the user dropped into.
-	const leafLanes = useMemo(() => flatRows.filter((r) => !r.isGroupHeading).map((r) => r.lane), [flatRows]);
+	const leafLanes = useMemo(() => rows.filter((r) => r.kind !== 'section').map((r) => r.lane), [rows]);
 
 	function removeOrderOverride(task: Task) {
 		if (!view || !task.id) return;
@@ -291,8 +291,10 @@ export function BoardShell(props: BoardShellProps) {
 		return <div class="tasks-board-empty">This board has no views yet.</div>;
 	}
 
+	// The cascaded `density` setting drives the spacing custom properties in styles.css, so one
+	// class on the root retunes card padding, row gaps and lane height for the whole board.
 	return (
-		<div class="tasks-board-shell">
+		<div class={`tasks-board-shell tasks-board-shell--${resolved.density}`}>
 			<div class="tasks-board-tabstrip">
 				{boardFile.views.map((v, i) => (
 					<button
@@ -363,22 +365,24 @@ export function BoardShell(props: BoardShellProps) {
 			>
 				<div
 					class="tasks-board-grid"
-					style={{ '--tasks-board-columns-count': String(gridColumns.length) }}
+					style={{ '--tasks-board-column-count': String(columns.length) }}
 				>
+					{/* `display: contents` — the header cells are grid items of the board grid itself,
+					    so they line up with every lane's cells without an intermediate box. */}
 					<div class="tasks-board-grid__header">
-						{gridColumns.map((col) => (
-							<ColumnHeader key={col.id} column={col} tasks={columnTasksAcrossRows(flatRows, col.id)} />
+						{columns.map((col, index) => (
+							<ColumnHeader key={col.id} column={col} index={index} tasks={columnTasks(rows, col.id)} />
 						))}
 					</div>
-					{flatRows.map((row) => (
-						<Lane
-							key={row.lane.id}
+					{rows.map((row) => (
+						<Swimlane
+							key={`${row.lane.id}:${row.kind}:${row.depth}`}
 							app={props.app}
 							lane={row.lane}
 							depth={row.depth}
-							isGroupHeading={row.isGroupHeading}
+							kind={row.kind}
 							showHeader={showLaneHeaders}
-							columns={gridColumns}
+							columns={columns}
 							chips={view.card.chips}
 							ctx={ctx}
 							accentRules={accentRules}

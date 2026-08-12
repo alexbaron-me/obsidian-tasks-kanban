@@ -25,6 +25,23 @@ drag-and-drop and the card context menu. Everything else in the interaction mode
 toggle done, `Enter` for the click action, `E` to edit, arrow-key focus movement, right-click
 menu, quick-add, postpone, the `tasks-board://` URI handler) is implemented.
 
+## Board layout
+
+The whole board is a single CSS grid. One row of column headers sits at the top and each swimlane
+is a horizontal band beneath it — headers and cells alike are direct grid items, which is what
+keeps every lane's cells locked to the same column tracks.
+
+The styling is deliberately flat and compact: hairlines rather than filled cells and gaps,
+hierarchy carried by type weight and colour (column name, then lane name, then card text, then
+metadata), and controls that aren't part of reading the board — quick-add, the card menu — kept
+hidden until their row is hovered or focused. Column headers stay pinned while you scroll
+vertically, lane headers stack beneath them, and lane labels stay pinned to the left edge while the
+columns scroll horizontally. Collapsing a lane leaves a thin row of per-column counts behind, so a
+folded lane still shows where its work sits.
+
+Spacing comes from one set of custom properties on the board root, retuned by the cascaded
+`density` setting (`compact`, the default, or `comfortable`).
+
 ## Development
 
 ```bash
