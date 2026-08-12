@@ -1,5 +1,4 @@
 import type { App } from 'obsidian';
-import { useState } from 'preact/hooks';
 import type { RenderedColumn } from '../../board/renderPipeline';
 import type { ChipKind } from '../../types/board';
 import type { QueryContext } from '../../query/context';
@@ -11,7 +10,9 @@ import { CardList } from './CardList';
 export interface ColumnProps {
 	app: App;
 	laneId: string;
-	column: RenderedColumn;
+	/** Null when this lane has no bucket for this column — only possible with the "auto" column
+	 * generator, whose buckets are derived per-lane (see `canonicalColumns`). */
+	column: RenderedColumn | null;
 	chips: readonly ChipKind[];
 	ctx: QueryContext;
 	accentRules: CompiledAccentRule[];
@@ -27,68 +28,37 @@ export interface ColumnProps {
 	onRemoveOrderOverride?: (task: Task) => void;
 }
 
-function urgencySum(tasks: readonly Task[]): number {
-	return tasks.reduce((sum, t) => sum + t.urgency, 0);
-}
-
+/** One swimlane row's cell for one board column: just the card list plus a lightweight quick-add
+ * affordance. Column identity (label, aggregate count, WIP, rollups) renders once, in the shared
+ * header row above every lane — see ColumnHeader. */
 export function Column(props: ColumnProps) {
-	const [collapsed, setCollapsed] = useState(props.column.bucket.override.collapsed ?? false);
-	const { bucket, tasks } = props.column;
-	const wip = bucket.override.wip;
-	const atLimit = wip ? tasks.length >= wip.max : false;
-	const rollups = bucket.override.rollups ?? [];
+	const { column } = props;
+	if (!column) return <div class="tasks-board-cell tasks-board-cell--empty" />;
 
 	return (
-		<div class={`tasks-board-column${collapsed ? ' tasks-board-column--collapsed' : ''}`} data-bucket-id={bucket.id}>
-			<div class="tasks-board-column__header">
-				<button
-					type="button"
-					class="tasks-board-column__collapse"
-					aria-label={collapsed ? 'Expand column' : 'Collapse column'}
-					onClick={() => setCollapsed((c) => !c)}
-				>
-					{collapsed ? '▸' : '▾'}
-				</button>
-				<span class="tasks-board-column__label">{bucket.label}</span>
-				<span class={`tasks-board-column__count${atLimit ? ' tasks-board-column__count--at-limit' : ''}`}>
-					{tasks.length}
-					{wip ? ` / ${wip.max}` : ''}
-				</span>
-				<button type="button" class="tasks-board-column__quick-add" aria-label="Add task" onClick={() => props.onQuickAdd(props.column)}>
-					+
-				</button>
-			</div>
-			{rollups.length > 0 ? (
-				<div class="tasks-board-column__rollups">
-					{rollups.includes('urgency') ? <span>Σ {urgencySum(tasks).toFixed(1)}</span> : null}
-					{rollups.includes('priority') ? (
-						<span class="tasks-board-column__priority-histogram">
-							{tasks.filter((t) => t.priorityName !== 'none').length} prioritized
-						</span>
-					) : null}
-				</div>
-			) : null}
-			{!collapsed ? (
-				<CardList
-					app={props.app}
-					bucketId={bucket.id}
-					laneId={props.laneId}
-					bucket={bucket}
-					tasks={tasks}
-					chips={props.chips}
-					ctx={props.ctx}
-					accentRules={props.accentRules}
-					clickAction={props.clickAction}
-					taskWriter={props.taskWriter}
-					postponeField={props.postponeField}
-					globalFilterTag={props.globalFilterTag}
-					onToggleDone={props.onToggleDone}
-					onEdit={props.onEdit}
-					onOpenFile={props.onOpenFile}
-					onTagClick={props.onTagClick}
-					onRemoveOrderOverride={props.onRemoveOrderOverride}
-				/>
-			) : null}
+		<div class="tasks-board-cell" data-bucket-id={column.bucket.id}>
+			<CardList
+				app={props.app}
+				bucketId={column.bucket.id}
+				laneId={props.laneId}
+				bucket={column.bucket}
+				tasks={column.tasks}
+				chips={props.chips}
+				ctx={props.ctx}
+				accentRules={props.accentRules}
+				clickAction={props.clickAction}
+				taskWriter={props.taskWriter}
+				postponeField={props.postponeField}
+				globalFilterTag={props.globalFilterTag}
+				onToggleDone={props.onToggleDone}
+				onEdit={props.onEdit}
+				onOpenFile={props.onOpenFile}
+				onTagClick={props.onTagClick}
+				onRemoveOrderOverride={props.onRemoveOrderOverride}
+			/>
+			<button type="button" class="tasks-board-cell__quick-add" onClick={() => props.onQuickAdd(column)}>
+				+ Add task
+			</button>
 		</div>
 	);
 }

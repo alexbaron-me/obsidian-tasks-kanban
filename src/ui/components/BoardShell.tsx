@@ -1,6 +1,7 @@
 import type { App, TFile } from 'obsidian';
 import { Notice } from 'obsidian';
 import { useMemo, useState } from 'preact/hooks';
+import { createPortal } from 'preact/compat';
 import {
 	DndContext,
 	DragOverlay,
@@ -27,7 +28,9 @@ import type { FieldWriter } from '../../write/FieldWriter';
 import type { QueryContext } from '../../query/context';
 import type { GlobalSettings } from '../../settings/GlobalSettings';
 import { resolveSettings } from '../../settings/cascade';
+import { canonicalColumns, columnTasksAcrossRows, flattenLanes } from '../../board/laneGrid';
 import { Lane } from './Lane';
+import { ColumnHeader } from './ColumnHeader';
 import { CardView } from './Card';
 import { openBoardSettingsModal } from '../BoardSettingsModal';
 
@@ -110,6 +113,13 @@ export function BoardShell(props: BoardShellProps) {
 		return computeBoardData(boardFile, view, props.allTasks, ctx, resolved);
 	}, [boardFile, view, props.allTasks, ctx, resolved]);
 
+	// Jira-style grid (§ swimlane redesign): one shared column-header row on top, then every
+	// swimlane as a horizontal band beneath it, all sharing the same grid column tracks so
+	// everything lines up — see `.tasks-board-grid` in styles.css.
+	const flatRows = useMemo(() => flattenLanes(data?.lanes ?? []), [data]);
+	const gridColumns = useMemo(() => canonicalColumns(flatRows), [flatRows]);
+	const showLaneHeaders = !(flatRows.length === 1 && flatRows[0]!.lane.id === '__all__');
+
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
 		useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
@@ -137,10 +147,16 @@ export function BoardShell(props: BoardShellProps) {
 		props.openTaskFile(task);
 	}
 
+	// Group-heading rows (see laneGrid.flattenLanes) carry the full, pre-split task set purely for
+	// display bookkeeping — they're never rendered as real cells/droppables, so every lookup below
+	// that resolves a task or a drop target to a specific lane+bucket must search leaf lanes only.
+	// Otherwise a nested-lane board could resolve a drop against the parent's redundant column
+	// instead of the actual nested one the user dropped into.
+	const leafLanes = useMemo(() => flatRows.filter((r) => !r.isGroupHeading).map((r) => r.lane), [flatRows]);
+
 	function removeOrderOverride(task: Task) {
-		if (!view || !data || !task.id) return;
-		const allLanesFlat = data.lanes.flatMap((l) => (l.nested ? [l, ...l.nested] : [l]));
-		for (const lane of allLanesFlat) {
+		if (!view || !task.id) return;
+		for (const lane of leafLanes) {
 			for (const column of lane.columns) {
 				if (!column.tasks.includes(task)) continue;
 				const bucketId = column.bucket.id;
@@ -153,7 +169,7 @@ export function BoardShell(props: BoardShellProps) {
 
 	async function quickAdd(laneId: string, bucketId: string) {
 		if (!view) return;
-		const column = data?.lanes.find((l) => l.id === laneId)?.columns.find((c) => c.bucket.id === bucketId);
+		const column = leafLanes.find((l) => l.id === laneId)?.columns.find((c) => c.bucket.id === bucketId);
 		const target = resolved.quickAddTarget ?? props.containingFilePath;
 		await props.taskWriter.createTaskViaModal(target, (line) => {
 			if (!column?.bucket.writeValue) return line;
@@ -183,8 +199,7 @@ export function BoardShell(props: BoardShellProps) {
 		let insertBeforeTaskKey: string | null = null;
 		if (target.kind === 'before' && target.taskKey) {
 			insertBeforeTaskKey = target.taskKey;
-			const found = data.lanes
-				.flatMap((l) => (l.nested ? [l, ...l.nested] : [l]))
+			const found = leafLanes
 				.flatMap((l) => l.columns.map((c) => ({ laneId: l.id, bucket: c })))
 				.find((c) => c.bucket.tasks.some((t) => `${t.taskLocation.path}:${t.taskLocation.lineNumber}` === target.taskKey));
 			if (!found) return;
@@ -193,12 +208,11 @@ export function BoardShell(props: BoardShellProps) {
 		}
 		if (!bucketId) return;
 
-		const allLanesFlat = data.lanes.flatMap((l) => (l.nested ? [l, ...l.nested] : [l]));
-		const targetLane = allLanesFlat.find((l) => l.id === laneId);
+		const targetLane = leafLanes.find((l) => l.id === laneId);
 		const targetColumn = targetLane?.columns.find((c) => c.bucket.id === bucketId);
 		if (!targetLane || !targetColumn) return;
 
-		const sourceLane = allLanesFlat.find((l) => l.columns.some((c) => c.tasks.includes(task)));
+		const sourceLane = leafLanes.find((l) => l.columns.some((c) => c.tasks.includes(task)));
 		const sourceColumn = sourceLane?.columns.find((c) => c.tasks.includes(task));
 		const crossedLane = view.lanes !== null && sourceLane && sourceLane.id !== targetLane.id;
 		const sameColumn = !crossedLane && sourceColumn === targetColumn;
@@ -347,12 +361,24 @@ export function BoardShell(props: BoardShellProps) {
 				onDragCancel={handleDragCancel}
 				onDragEnd={(e: DragEndEvent) => void handleDragEnd(e)}
 			>
-				<div class="tasks-board-lanes">
-					{data.lanes.map((lane) => (
+				<div
+					class="tasks-board-grid"
+					style={{ '--tasks-board-columns-count': String(gridColumns.length) }}
+				>
+					<div class="tasks-board-grid__header">
+						{gridColumns.map((col) => (
+							<ColumnHeader key={col.id} column={col} tasks={columnTasksAcrossRows(flatRows, col.id)} />
+						))}
+					</div>
+					{flatRows.map((row) => (
 						<Lane
-							key={lane.id}
+							key={row.lane.id}
 							app={props.app}
-							lane={lane}
+							lane={row.lane}
+							depth={row.depth}
+							isGroupHeading={row.isGroupHeading}
+							showHeader={showLaneHeaders}
+							columns={gridColumns}
 							chips={view.card.chips}
 							ctx={ctx}
 							accentRules={accentRules}
@@ -364,34 +390,45 @@ export function BoardShell(props: BoardShellProps) {
 							onToggleDone={(t) => void toggleDone(t)}
 							onEdit={(t) => void editTask(t)}
 							onOpenFile={openFile}
-							onQuickAdd={(lId, col) => void quickAdd(lId, col.bucket.id)}
+							onQuickAdd={(lId, bucketId) => void quickAdd(lId, bucketId)}
 							onRemoveOrderOverride={removeOrderOverride}
 						/>
 					))}
 				</div>
-				<DragOverlay dropAnimation={null}>
-					{activeTask ? (
-						<CardView
-							app={props.app}
-							task={activeTask}
-							chips={view.card.chips}
-							ctx={ctx}
-							accent={matchAccent(accentRules, activeTask, ctx)}
-							clickAction={resolved.clickAction}
-							taskWriter={props.taskWriter}
-							globalFilterTag={globalFilterTag}
-							onToggleDone={() => {}}
-							onEdit={() => {}}
-							onOpenFile={() => {}}
-							nodeRef={() => {}}
-							extraClass=" tasks-board-card--overlay"
-							style={{}}
-							dragListeners={{}}
-							dragAttributes={{}}
-							dragDisabled
-						/>
-					) : null}
-				</DragOverlay>
+				{createPortal(
+					// dnd-kit's DragOverlay positions itself with `position: fixed` but renders
+					// inline in the component tree rather than portaling on its own — if any
+					// ancestor between here and <body> has a CSS transform (Obsidian's workspace
+					// panes routinely do, for split/resize animations), that becomes the fixed
+					// element's containing block instead of the viewport, throwing the overlay's
+					// position off by however far that ancestor sits from the true origin.
+					// Portaling straight to document.body sidesteps that; DndContext's own React
+					// context still reaches it since portals don't break context propagation.
+					<DragOverlay dropAnimation={null}>
+						{activeTask ? (
+							<CardView
+								app={props.app}
+								task={activeTask}
+								chips={view.card.chips}
+								ctx={ctx}
+								accent={matchAccent(accentRules, activeTask, ctx)}
+								clickAction={resolved.clickAction}
+								taskWriter={props.taskWriter}
+								globalFilterTag={globalFilterTag}
+								onToggleDone={() => {}}
+								onEdit={() => {}}
+								onOpenFile={() => {}}
+								nodeRef={() => {}}
+								extraClass=" tasks-board-card--overlay"
+								style={{}}
+								dragListeners={{}}
+								dragAttributes={{}}
+								dragDisabled
+							/>
+						) : null}
+					</DragOverlay>,
+					document.body,
+				)}
 			</DndContext>
 		</div>
 	);

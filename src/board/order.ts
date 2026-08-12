@@ -99,8 +99,24 @@ export function computeDropPosition(
 	sameBucket: boolean,
 ): DropPositionResult {
 	const without = bucketTasks.filter((t) => t !== task);
-	const rawInsertAt = insertBeforeTask ? without.indexOf(insertBeforeTask) : -1;
-	const insertAt = rawInsertAt === -1 ? without.length : rawInsertAt;
+
+	let insertAt: number;
+	if (insertBeforeTask === task) {
+		// dnd-kit reported the drop landing on the dragged card's own "insert before" droppable
+		// zone — every card doubles as one, and a drag that ends without moving far enough to
+		// clear its own bounds resolves here. That's not a real target: `without.indexOf` would
+		// return -1 (the card has already been filtered out of `without`) and fall through to
+		// "insert at the end", turning a stationary drop into a bogus move-to-last. Put it back
+		// at its original index instead.
+		const originalIndex = bucketTasks.indexOf(task);
+		insertAt = originalIndex === -1 ? without.length : Math.min(originalIndex, without.length);
+	} else if (insertBeforeTask) {
+		const idx = without.indexOf(insertBeforeTask);
+		insertAt = idx === -1 ? without.length : idx;
+	} else {
+		insertAt = without.length;
+	}
+
 	const newOrder = [...without];
 	newOrder.splice(insertAt, 0, task);
 

@@ -2,8 +2,9 @@
 // cannot execute (a test-tooling limitation of dnd-kit + preact/compat under vitest's module
 // resolution — the production esbuild bundle aliases correctly and is unaffected, see
 // tests/ui/Card.test.tsx's header comment for the CardView split that works around this for
-// Card itself). Column's own header logic (label, WIP counter, collapse, quick-add) is
-// independent of that, so we stub CardList out here to test it in isolation.
+// Card itself). Column is now just a thin cell wrapper around CardList plus a quick-add button —
+// column identity (label, count, WIP, rollups) moved to ColumnHeader, see that test file — so we
+// stub CardList out here to test the cell shell in isolation.
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/preact';
 import { App, moment } from 'obsidian';
@@ -32,7 +33,7 @@ function ctx(): QueryContext {
 	};
 }
 
-function renderColumn(column: RenderedColumn, onQuickAdd = vi.fn()) {
+function renderColumn(column: RenderedColumn | null, onQuickAdd = vi.fn()) {
 	const app = new App();
 	const taskWriter = new TaskWriter(app, new FieldWriter('emoji'), new TasksApi(app), new TasksCache(app));
 	return render(
@@ -54,41 +55,10 @@ function renderColumn(column: RenderedColumn, onQuickAdd = vi.fn()) {
 }
 
 describe('Column', () => {
-	it('renders the bucket label and task count', () => {
-		const tasks = [makeTask(), makeTask()];
-		const column: RenderedColumn = {
-			bucket: { id: 'Doing', label: 'Doing', writeValue: null, override: {} },
-			tasks,
-		};
-		renderColumn(column);
-		expect(screen.getByText('Doing')).toBeTruthy();
-		expect(screen.getByText('2')).toBeTruthy();
-	});
-
-	it('shows the WIP limit alongside the count', () => {
-		const column: RenderedColumn = {
-			bucket: { id: 'Doing', label: 'Doing', writeValue: null, override: { wip: { max: 3 } } },
-			tasks: [makeTask(), makeTask()],
-		};
-		renderColumn(column);
-		expect(screen.getByText('2 / 3')).toBeTruthy();
-	});
-
-	it('marks the counter as at-limit once the count reaches the WIP max', () => {
-		const column: RenderedColumn = {
-			bucket: { id: 'Doing', label: 'Doing', writeValue: null, override: { wip: { max: 2 } } },
-			tasks: [makeTask(), makeTask()],
-		};
-		const { container } = renderColumn(column);
-		expect(container.querySelector('.tasks-board-column__count--at-limit')).toBeTruthy();
-	});
-
-	it('collapsing hides the card list', () => {
-		const column: RenderedColumn = { bucket: { id: 'Doing', label: 'Doing', writeValue: null, override: {} }, tasks: [] };
+	it('renders the card list for a populated bucket', () => {
+		const column: RenderedColumn = { bucket: { id: 'Doing', label: 'Doing', writeValue: null, override: {} }, tasks: [makeTask()] };
 		renderColumn(column);
 		expect(screen.getByTestId('card-list-stub')).toBeTruthy();
-		fireEvent.click(screen.getByRole('button', { name: /collapse column/i }));
-		expect(screen.queryByTestId('card-list-stub')).toBeFalsy();
 	});
 
 	it('clicking quick-add invokes the callback with this column', () => {
@@ -99,12 +69,9 @@ describe('Column', () => {
 		expect(onQuickAdd).toHaveBeenCalledWith(column);
 	});
 
-	it('renders an urgency rollup when configured', () => {
-		const column: RenderedColumn = {
-			bucket: { id: 'Doing', label: 'Doing', writeValue: null, override: { rollups: ['urgency'] } },
-			tasks: [makeTask({ urgency: 1.5 }), makeTask({ urgency: 2.5 })],
-		};
-		renderColumn(column);
-		expect(screen.getByText('Σ 4.0')).toBeTruthy();
+	it('renders an empty placeholder cell when the lane has no bucket for this column', () => {
+		const { container } = renderColumn(null);
+		expect(container.querySelector('.tasks-board-cell--empty')).toBeTruthy();
+		expect(screen.queryByTestId('card-list-stub')).toBeFalsy();
 	});
 });

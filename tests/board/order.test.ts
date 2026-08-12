@@ -169,4 +169,27 @@ describe('computeDropPosition', () => {
 		expect(result.newOrder).toEqual([a, b]);
 		expect(result.insertAt).toBe(1);
 	});
+
+	it('is a no-op when the drop lands on the dragged card\'s own "insert before" zone, mid-bucket', () => {
+		// Every card is also a droppable "insert before me" zone, including the one being
+		// dragged. A short drag that never clears its own bounds resolves `event.over` to that
+		// zone, i.e. insertBeforeTask === task itself — this must not be misread as "move to the
+		// end" (regression: a short/no-op drag on a card that isn't already last was still
+		// triggering the manual-order confirmation).
+		const a = makeTask({ id: 'aaa' });
+		const b = makeTask({ id: 'bbb' });
+		const c = makeTask({ id: 'ccc' });
+		const result = computeDropPosition([a, b, c], b, b, true);
+		expect(result.isNoOp).toBe(true);
+		expect(result.newOrder).toEqual([a, b, c]);
+		expect(result.insertAt).toBe(1);
+	});
+
+	it('is a no-op when the drop lands on the first card\'s own zone', () => {
+		const a = makeTask({ id: 'aaa' });
+		const b = makeTask({ id: 'bbb' });
+		const result = computeDropPosition([a, b], a, a, true);
+		expect(result.isNoOp).toBe(true);
+		expect(result.insertAt).toBe(0);
+	});
 });
