@@ -1,37 +1,47 @@
 import type { Task } from '../../types/tasks';
-import type { CanonicalColumn } from '../../board/laneGrid';
+import type { GridColumn } from '../../board/boardGrid';
 
 export interface ColumnHeaderProps {
-	column: CanonicalColumn;
+	column: GridColumn;
+	/** Every task in this column across every lane — the column is summarised once here rather than
+	 * repeated in each lane's cell. */
 	tasks: readonly Task[];
+	/** Position in the shared column set; every column but the first draws a leading hairline. */
+	index: number;
 }
 
 function urgencySum(tasks: readonly Task[]): number {
-	return tasks.reduce((sum, t) => sum + t.urgency, 0);
+	return tasks.reduce((sum, task) => sum + task.urgency, 0);
 }
 
-/** Renders once per board column, above every swimlane row — label, aggregate count (across every
- * lane), WIP limit, and rollups. Per-lane identity lives in the lane header bar instead. */
+/**
+ * One column's identity, rendered once above every lane: name, board-wide count, WIP limit and
+ * rollups on a single compact line. Lane-level identity lives in the lane header instead, so this
+ * row stays quiet enough to scan across.
+ */
 export function ColumnHeader(props: ColumnHeaderProps) {
 	const { column, tasks } = props;
 	const count = tasks.length;
-	const atLimit = column.wip ? count >= column.wip.max : false;
+	const atLimit = column.wip !== undefined && count >= column.wip.max;
 	const rollups = column.rollups ?? [];
 
 	return (
-		<div class="tasks-board-grid__header-cell" data-bucket-id={column.id}>
-			<div class="tasks-board-grid__header-top">
-				<span class="tasks-board-grid__header-label">{column.label}</span>
-				<span class={`tasks-board-grid__header-count${atLimit ? ' tasks-board-grid__header-count--at-limit' : ''}`}>
-					{count}
-					{column.wip ? ` / ${column.wip.max}` : ''}
-				</span>
-			</div>
+		<div
+			class={`tasks-board-col${props.index > 0 ? ' tasks-board-col--divided' : ''}`}
+			data-bucket-id={column.id}
+		>
+			<span class="tasks-board-col__label">{column.label}</span>
+			<span class={`tasks-board-col__count${atLimit ? ' tasks-board-col__count--at-limit' : ''}`}>
+				{count}
+				{column.wip ? ` / ${column.wip.max}` : ''}
+			</span>
 			{rollups.length > 0 ? (
-				<div class="tasks-board-grid__header-rollups">
+				<span class="tasks-board-col__rollups">
 					{rollups.includes('urgency') ? <span>Σ {urgencySum(tasks).toFixed(1)}</span> : null}
-					{rollups.includes('priority') ? <span>{tasks.filter((t) => t.priorityName !== 'none').length} prioritized</span> : null}
-				</div>
+					{rollups.includes('priority') ? (
+						<span>{tasks.filter((t) => t.priorityName !== 'none').length} prioritized</span>
+					) : null}
+				</span>
 			) : null}
 		</div>
 	);

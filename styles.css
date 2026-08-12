@@ -1,32 +1,79 @@
-/* Tasks Board — uses Obsidian's own CSS variables throughout; no hard-coded colours. */
+/* Tasks Board
+   ============================================================================================
+   Built entirely on Obsidian's own CSS variables — no hard-coded colours, so the board inherits
+   whatever theme the user runs.
+
+   Layout: the whole board is a single CSS grid. The shared column headers, every swimlane header
+   and every lane's cells are all direct grid items of `.tasks-board-grid`, which is what keeps the
+   headers and the cells beneath them locked to the same column tracks while scrolling in either
+   axis.
+
+   Visual language: flat surfaces separated by hairlines rather than filled boxes and gaps.
+   Hierarchy comes from type weight, colour and a little vertical rhythm — column names read
+   strongest, then lane names, then card text, then metadata. Controls that aren't part of reading
+   the board (quick-add, the card menu) stay hidden until their row is hovered or focused, so a
+   dense board still scans cleanly.
+   ============================================================================================ */
 
 .tasks-board-shell {
+	/* Spacing scale — retuned as a set by the cascaded `density` setting (see the modifier
+	   below), so density is one class on the root rather than per-rule overrides. */
+	--tb-col-min: 248px;
+	--tb-col-header-h: 30px;
+	--tb-lane-h: 28px;
+	--tb-gutter: 8px;
+	--tb-card-gap: 4px;
+	--tb-card-pad-y: 5px;
+	--tb-card-pad-x: 8px;
+	--tb-radius: var(--radius-s);
+	--tb-line: var(--background-modifier-border);
+
 	display: flex;
 	flex-direction: column;
 	height: 100%;
 	overflow: hidden;
+	background: var(--background-primary);
 }
+
+.tasks-board-shell--comfortable {
+	--tb-col-min: 272px;
+	--tb-col-header-h: 34px;
+	--tb-lane-h: 32px;
+	--tb-gutter: 10px;
+	--tb-card-gap: 6px;
+	--tb-card-pad-y: 8px;
+	--tb-card-pad-x: 10px;
+}
+
+/* ── View tabs and toolbar ────────────────────────────────────────────────────────────────── */
 
 .tasks-board-tabstrip {
 	display: flex;
 	align-items: center;
-	gap: 4px;
-	padding: 6px 8px;
-	border-bottom: 1px solid var(--background-modifier-border);
+	gap: 2px;
 	flex-shrink: 0;
+	padding: 4px 8px;
+	border-bottom: 1px solid var(--tb-line);
 }
 
 .tasks-board-tab {
 	background: transparent;
 	border: none;
-	padding: 4px 10px;
-	border-radius: var(--radius-s);
+	box-shadow: none;
+	padding: 3px 8px;
+	border-radius: var(--tb-radius);
 	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
 	cursor: pointer;
 }
 
+.tasks-board-tab:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
 .tasks-board-tab.is-active {
-	background: var(--background-modifier-active-hover);
+	background: var(--background-modifier-hover);
 	color: var(--text-normal);
 	font-weight: 600;
 }
@@ -39,215 +86,343 @@
 	flex: 1;
 }
 
+.tasks-board-toolbar-btn {
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	border-radius: var(--tb-radius);
+	padding: 3px 8px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	cursor: pointer;
+}
+
+.tasks-board-toolbar-btn:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
 .tasks-board-warnings,
 .tasks-board-hidden-count {
-	padding: 4px 12px;
+	flex-shrink: 0;
+	padding: 4px 10px;
 	font-size: var(--font-ui-smaller);
-	color: var(--text-warning, var(--text-muted));
-	background: var(--background-secondary);
+	color: var(--text-muted);
+	border-bottom: 1px solid var(--tb-line);
 }
 
-/* Jira-style swimlane grid: one shared column-header row (position: sticky) followed by every
-   lane as a full-width header bar plus one cell per column, all as direct children of this grid
-   so the header and every lane's cells share the exact same column tracks and stay aligned while
-   scrolling. `gap` + a border-colour background is used as thin grid lines, Jira-board style. */
+.tasks-board-warnings {
+	color: var(--text-warning, var(--text-muted));
+}
+
+/* ── Board grid ───────────────────────────────────────────────────────────────────────────── */
+
 .tasks-board-grid {
 	flex: 1;
+	min-height: 0;
 	overflow: auto;
 	display: grid;
-	grid-template-columns: repeat(var(--tasks-board-columns-count, 1), minmax(240px, 1fr));
-	/* Default (stretch): every cell in a lane's row grows to match that row's tallest cell, so a
-	   lane's cards line up in a clean rectangle instead of leaving a jagged, line-coloured gap
-	   under the shorter columns. */
-	gap: 1px;
-	background: var(--background-modifier-border);
-	padding: 0 0 1px;
+	grid-template-columns: repeat(var(--tasks-board-column-count, 1), minmax(var(--tb-col-min), 1fr));
+	/* Rows size to their content instead of stretching to fill a short board, so lanes stack from
+	   the top rather than spreading out. */
+	align-content: start;
+	background: var(--background-primary);
+	padding-bottom: 32px;
 }
 
-/* Makes the header cells direct grid items of `.tasks-board-grid` (so they share its column
-   tracks) without introducing an extra box of their own. */
+/* Dissolves this wrapper so the header cells become grid items of `.tasks-board-grid` itself and
+   therefore share its column tracks. */
 .tasks-board-grid__header {
 	display: contents;
 }
 
-.tasks-board-grid__header-cell {
-	position: sticky;
-	top: 0;
-	z-index: 2;
-	background: var(--background-secondary);
-	padding: 8px 10px;
-	font-weight: 600;
+/* The one vertical rule in the design: a hairline before every column but the first, giving the
+   eye a track to follow down through the lanes without the heavy cell borders of a spreadsheet. */
+.tasks-board-col--divided,
+.tasks-board-cell--divided {
+	border-left: 1px solid var(--tb-line);
 }
 
-.tasks-board-grid__header-top {
+/* ── Column headers ───────────────────────────────────────────────────────────────────────── */
+
+.tasks-board-col {
+	position: sticky;
+	top: 0;
+	z-index: 3;
 	display: flex;
 	align-items: center;
 	gap: 6px;
+	/* Fixed rather than min-height: swimlane headers stick directly beneath this row and offset
+	   themselves by exactly this value. */
+	height: var(--tb-col-header-h);
+	padding: 0 var(--tb-gutter);
+	background: var(--background-primary);
+	border-bottom: 1px solid var(--tb-line);
 }
 
-.tasks-board-grid__header-label {
-	flex: 1;
-	text-transform: uppercase;
-	font-size: var(--font-ui-small);
-	letter-spacing: 0.02em;
-	color: var(--text-muted);
-}
-
-.tasks-board-grid__header-count {
+.tasks-board-col__label {
+	min-width: 0;
 	font-size: var(--font-ui-smaller);
 	font-weight: 600;
-	color: var(--text-muted);
-	background: var(--background-modifier-border);
-	border-radius: var(--radius-s);
-	padding: 1px 6px;
+	color: var(--text-normal);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
-.tasks-board-grid__header-count--at-limit {
-	color: var(--text-on-accent);
-	background: var(--color-red);
+.tasks-board-col__count {
+	flex-shrink: 0;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	font-variant-numeric: tabular-nums;
 }
 
-.tasks-board-grid__header-rollups {
+.tasks-board-col__count--at-limit {
+	color: var(--text-error);
+	font-weight: 600;
+}
+
+.tasks-board-col__rollups {
 	display: flex;
 	gap: 8px;
-	margin-top: 4px;
+	margin-inline-start: auto;
+	padding-inline-start: 8px;
 	font-size: var(--font-ui-smaller);
-	font-weight: 400;
-	color: var(--text-muted);
+	color: var(--text-faint);
+	white-space: nowrap;
 }
 
-.tasks-board-grid__group-heading {
+/* ── Swimlanes ────────────────────────────────────────────────────────────────────────────── */
+
+/* The heading for a lane that the nested `group by` split: it owns no cells of its own, so it
+   reads as a quiet section label rather than a band. */
+.tasks-board-section {
 	grid-column: 1 / -1;
-	padding: 10px 10px 2px;
-	font-size: var(--font-ui-smaller);
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.03em;
-	color: var(--text-faint);
+	padding-block: 12px 2px;
 	background: var(--background-primary);
 }
 
-.tasks-board-grid__lane-header {
+.tasks-board-section__label {
+	/* Pinned to the left edge of the scrollport: this row spans every column, so on a board wide
+	   enough to scroll horizontally the label would otherwise slide out of view. */
+	position: sticky;
+	left: 0;
+	display: inline-block;
+	padding-inline-end: var(--tb-gutter);
+	font-size: var(--font-ui-smaller);
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--text-faint);
+}
+
+.tasks-board-lane {
 	grid-column: 1 / -1;
+	/* Sticks just below the column headers, so the lane you're reading stays labelled as you
+	   scroll through it and is pushed off by the next lane's header. */
+	position: sticky;
+	top: var(--tb-col-header-h);
+	z-index: 2;
 	display: flex;
 	align-items: center;
-	gap: 8px;
 	width: 100%;
-	background: var(--background-primary);
+	min-height: var(--tb-lane-h);
+	padding: 0;
+	background: var(--background-secondary);
 	border: none;
-	padding: 8px 10px;
-	font-weight: 600;
+	border-top: 1px solid var(--tb-line);
+	border-bottom: 1px solid var(--tb-line);
+	border-radius: 0;
+	box-shadow: none;
 	text-align: left;
 	cursor: pointer;
 }
 
-.tasks-board-grid__lane-header:hover {
+.tasks-board-lane:hover {
 	background: var(--background-modifier-hover);
 }
 
-.tasks-board-grid__lane-collapse {
-	color: var(--text-muted);
-	width: 1em;
-}
-
-.tasks-board-grid__lane-avatar {
+/* Same reasoning as `.tasks-board-section__label`: the header spans every column, so its contents
+   are pinned to the left edge rather than riding the horizontal scroll off-screen. */
+.tasks-board-lane__inner {
+	position: sticky;
+	left: 0;
 	display: flex;
 	align-items: center;
-	justify-content: center;
-	width: 22px;
-	height: 22px;
+	gap: 6px;
+	max-width: 100%;
+	min-width: 0;
+	padding-inline-end: var(--tb-gutter);
+}
+
+.tasks-board-lane__chevron {
 	flex-shrink: 0;
+	width: 0;
+	height: 0;
+	border-top: 4px solid transparent;
+	border-bottom: 4px solid transparent;
+	border-left: 5px solid var(--text-faint);
+	transform: rotate(90deg);
+	transition: transform 120ms ease;
+}
+
+.tasks-board-lane__chevron.is-collapsed {
+	transform: rotate(0deg);
+}
+
+/* A small colour marker rather than an avatar: enough to tell lanes apart at a glance without
+   competing with the label for attention. */
+.tasks-board-lane__dot {
+	flex-shrink: 0;
+	width: 6px;
+	height: 6px;
 	border-radius: 50%;
-	background: hsl(var(--tasks-board-lane-hue, 200), 45%, 42%);
-	color: #fff;
-	font-size: var(--font-ui-smaller);
-	font-weight: 700;
+	background: hsl(var(--tasks-board-lane-hue, 210) 55% 55%);
 }
 
-.tasks-board-grid__lane-label {
-	flex: 1;
+.tasks-board-lane__label {
+	min-width: 0;
+	font-size: var(--font-ui-smaller);
+	font-weight: 600;
+	color: var(--text-normal);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
-.tasks-board-grid__lane-count {
+.tasks-board-lane__count {
+	flex-shrink: 0;
 	font-size: var(--font-ui-smaller);
-	font-weight: 400;
-	color: var(--text-muted);
+	color: var(--text-faint);
+	font-variant-numeric: tabular-nums;
 }
+
+/* A collapsed lane keeps one thin row of per-column counts, so folding a lane away hides its cards
+   without hiding where its work sits. */
+.tasks-board-lane-summary {
+	display: flex;
+	align-items: center;
+	min-height: 22px;
+	padding: 2px var(--tb-gutter);
+	background: var(--background-primary);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	font-variant-numeric: tabular-nums;
+}
+
+/* ── Cells and cards ──────────────────────────────────────────────────────────────────────── */
 
 .tasks-board-cell {
-	background: var(--background-secondary);
 	display: flex;
 	flex-direction: column;
-	min-height: 40px;
+	min-width: 0;
+	background: var(--background-primary);
 }
 
+/* A lane with no bucket for this column (only reachable with the `auto` generator) shows nothing
+   at all — just the column's hairline running past it. */
 .tasks-board-cell--empty {
-	opacity: 0.5;
-}
-
-.tasks-board-cell__quick-add {
-	background: transparent;
-	border: none;
-	cursor: pointer;
-	color: var(--text-faint);
-	text-align: left;
-	padding: 4px 10px 8px;
-	font-size: var(--font-ui-smaller);
-}
-
-.tasks-board-cell__quick-add:hover {
-	color: var(--text-muted);
+	background: var(--background-primary);
 }
 
 .tasks-board-card-list {
-	overflow-y: auto;
-	/* Explicit, not left to the CSS overflow "visible+auto -> auto,auto" promotion rule: without
-	   this, any transform/width blip during a drag (even from a dragged card's own DragOverlay
-	   shadow) pops a horizontal scrollbar for the whole column. */
-	overflow-x: hidden;
-	padding: 6px;
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
-	min-height: 24px;
+	gap: var(--tb-card-gap);
+	min-height: 18px;
+	padding: var(--tb-card-gap) var(--tb-gutter);
 }
 
 .tasks-board-card-list--drop-end {
-	outline: 2px dashed var(--interactive-accent);
-	outline-offset: -2px;
+	background: color-mix(in srgb, var(--interactive-accent) 8%, transparent);
+	box-shadow: inset 0 0 0 1px var(--interactive-accent);
+	border-radius: var(--tb-radius);
+}
+
+.tasks-board-cell__add {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin: 0 var(--tb-gutter) var(--tb-card-gap);
+	padding: 2px 6px;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	border-radius: var(--tb-radius);
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	text-align: left;
+	cursor: pointer;
+	/* Hidden until the cell is hovered or focused: on a dense board these would otherwise add a
+	   row of visual noise under every column of every lane. */
+	opacity: 0;
+	transition: opacity 100ms ease, background-color 100ms ease;
+}
+
+.tasks-board-cell:hover .tasks-board-cell__add,
+.tasks-board-cell:focus-within .tasks-board-cell__add,
+.tasks-board-cell__add:focus-visible {
+	opacity: 1;
+}
+
+.tasks-board-cell__add:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-muted);
+}
+
+.tasks-board-cell__add-icon {
+	font-size: var(--font-ui-small);
+	line-height: 1;
 }
 
 .tasks-board-card {
+	position: relative;
+	min-width: 0;
 	background: var(--background-primary);
-	border: 1px solid var(--background-modifier-border);
-	border-left: 3px solid transparent;
-	border-radius: var(--radius-s);
-	padding: 6px 8px;
+	border: 1px solid var(--tb-line);
+	border-radius: var(--tb-radius);
+	padding: var(--tb-card-pad-y) var(--tb-card-pad-x);
+	font-size: var(--font-ui-small);
+	line-height: 1.45;
 	cursor: pointer;
+	transition: background-color 100ms ease, border-color 100ms ease;
+}
+
+.tasks-board-card:hover {
+	background: var(--background-modifier-hover);
+	border-color: var(--background-modifier-border-hover);
 }
 
 .tasks-board-card:focus-visible {
 	outline: 2px solid var(--interactive-accent);
+	outline-offset: 1px;
 }
 
 .tasks-board-card--dragging {
-	opacity: 0.4;
+	opacity: 0.35;
 }
 
 .tasks-board-card--overlay {
-	cursor: grabbing;
-	box-shadow: var(--shadow-l, 0 4px 16px rgba(0, 0, 0, 0.25));
-	/* DragOverlay renders this in a body-level portal, so it's free to be as wide as its source
-	   column without ever triggering that column's scrollbars. */
 	width: 260px;
+	cursor: grabbing;
+	border-color: var(--background-modifier-border-hover);
+	box-shadow: var(--shadow-l, 0 8px 24px rgba(0, 0, 0, 0.25));
 }
 
-.tasks-board-card--drop-before {
-	border-top: 2px solid var(--interactive-accent);
+/* Drawn as a pseudo-element rather than a border or box-shadow: it must not shift the card's box,
+   and it must not collide with the inline box-shadow an accent rule sets (see Card.tsx). */
+.tasks-board-card--drop-before::before {
+	content: '';
+	position: absolute;
+	inset-inline: -1px;
+	top: -3px;
+	height: 2px;
+	border-radius: 1px;
+	background: var(--interactive-accent);
 }
 
 .tasks-board-card--blocked {
-	opacity: 0.55;
+	opacity: 0.5;
 }
 
 .tasks-board-card__row {
@@ -256,9 +431,21 @@
 	gap: 6px;
 }
 
+.tasks-board-card__checkbox {
+	flex-shrink: 0;
+	/* Nudged down to sit on the first line of the description rather than above it. */
+	margin: 2px 0 0;
+	width: 14px;
+	height: 14px;
+}
+
 .tasks-board-card__description {
 	flex: 1;
 	min-width: 0;
+	color: var(--text-normal);
+	/* A long unbroken string (a URL, a path) must wrap rather than widen the column — nothing here
+	   scrolls horizontally on its own. */
+	overflow-wrap: anywhere;
 }
 
 .tasks-board-card__description :is(p) {
@@ -267,46 +454,75 @@
 
 .tasks-board-card__edit {
 	flex: 1;
+	min-width: 0;
 	resize: vertical;
 	min-height: 2.4em;
+	font-size: var(--font-ui-small);
 }
 
 .tasks-board-card__menu-btn {
+	flex-shrink: 0;
 	background: transparent;
 	border: none;
-	cursor: pointer;
+	box-shadow: none;
+	padding: 0 2px;
+	line-height: 1;
 	color: var(--text-faint);
+	cursor: pointer;
+	opacity: 0;
+	transition: opacity 100ms ease;
+}
+
+.tasks-board-card:hover .tasks-board-card__menu-btn,
+.tasks-board-card:focus-within .tasks-board-card__menu-btn,
+.tasks-board-card__menu-btn:focus-visible {
+	opacity: 1;
 }
 
 .tasks-board-card__chips {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 4px;
-	margin-top: 4px;
+	align-items: center;
+	gap: 2px 8px;
+	margin-top: 3px;
 }
 
+/* Metadata reads as quiet text, not as filled pills — the card's description should stay the
+   loudest thing on it. Only genuinely exceptional state (an overdue date) takes colour. */
 .tasks-board-card__chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	padding: 0;
+	background: transparent;
+	border-radius: var(--tb-radius);
 	font-size: var(--font-ui-smaller);
-	background: var(--background-modifier-border);
-	border-radius: var(--radius-s);
-	padding: 1px 6px;
 	color: var(--text-muted);
+	white-space: nowrap;
 }
 
 .tasks-board-chip--overdue {
-	color: var(--text-on-accent);
-	background: var(--color-red);
+	color: var(--text-error);
+	font-weight: 600;
 }
 
 .tasks-board-chip--tags {
+	color: var(--text-accent);
 	cursor: pointer;
 }
+
+.tasks-board-chip--tags:hover {
+	text-decoration: underline;
+}
+
+/* ── Empty, loading and error states ──────────────────────────────────────────────────────── */
 
 .tasks-board-empty,
 .tasks-board-loading {
 	padding: 24px;
 	text-align: center;
 	color: var(--text-muted);
+	font-size: var(--font-ui-small);
 }
 
 .tasks-board-error-panel {
@@ -327,21 +543,7 @@
 	font-family: var(--font-monospace);
 }
 
-.tasks-board-toolbar-btn {
-	background: transparent;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-s);
-	padding: 4px 10px;
-	color: var(--text-muted);
-	cursor: pointer;
-}
-
-.tasks-board-toolbar-btn:hover {
-	color: var(--text-normal);
-	background: var(--background-modifier-hover);
-}
-
-/* Board settings modal (src/ui/BoardSettingsModal.ts) */
+/* ── Board settings modal (src/ui/BoardSettingsModal.ts) ──────────────────────────────────── */
 
 .tasks-board-settings-modal {
 	width: min(680px, 92vw);
@@ -357,7 +559,7 @@
 	display: flex;
 	gap: 4px;
 	padding: 4px 0 12px;
-	border-bottom: 1px solid var(--background-modifier-border);
+	border-bottom: 1px solid var(--tb-line, var(--background-modifier-border));
 	margin-bottom: 12px;
 	position: sticky;
 	top: 0;
@@ -433,19 +635,26 @@
 	width: 5em;
 }
 
-/* Mobile / narrow layout (§12.9): horizontal snap-scroll, one column per viewport width, lanes
-   collapsed by default is handled in-code via laneCollapseDefault. The column count itself comes
-   from the inline `--tasks-board-columns-count` custom property (set in BoardShell.tsx) — only
-   the *track size* differs here, so it must stay a plain stylesheet property (not inline) for
-   this override to actually win over the desktop rule. */
+/* ── Narrow / mobile layout ───────────────────────────────────────────────────────────────── */
+
+/* One column per viewport width with horizontal snap-scrolling. The column count itself comes from
+   the inline `--tasks-board-column-count` set in BoardShell; only the track *size* changes here, so
+   this must stay a stylesheet rule to win over the desktop declaration. */
 @media (max-width: 600px) {
 	.tasks-board-grid {
-		grid-template-columns: repeat(var(--tasks-board-columns-count, 1), 92vw);
+		grid-template-columns: repeat(var(--tasks-board-column-count, 1), 92vw);
 		scroll-snap-type: x mandatory;
 	}
 
-	.tasks-board-grid__header-cell,
-	.tasks-board-cell {
+	.tasks-board-col,
+	.tasks-board-cell,
+	.tasks-board-lane-summary {
 		scroll-snap-align: start;
+	}
+
+	/* There is no hover on touch, so the controls that reveal on hover are always visible here. */
+	.tasks-board-cell__add,
+	.tasks-board-card__menu-btn {
+		opacity: 1;
 	}
 }

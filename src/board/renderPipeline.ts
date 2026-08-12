@@ -4,7 +4,7 @@ import type { BoardFile, Bucket, ViewConfig } from '../types/board';
 import { compileQuery } from '../query/compile';
 import type { QueryContext } from '../query/context';
 import { generateBuckets } from './buckets';
-import { buildLanes, type Lane } from './lanes';
+import { buildSwimlanes, type Swimlane } from './swimlanes';
 import { applyOrder, pruneOrder } from './order';
 import { applyAutoHide } from './autoHide';
 import type { ResolvedSettings } from '../settings/cascade';
@@ -18,7 +18,8 @@ export interface RenderedLane {
 	id: string;
 	label: string;
 	columns: RenderedColumn[];
-	nested: RenderedLane[] | null;
+	/** Mirrors `Swimlane.children`: non-null only for a lane the nested `group by` split. */
+	children: RenderedLane[] | null;
 }
 
 export interface BoardData {
@@ -66,7 +67,7 @@ function bucketizeLaneTasks(
 	return { columns, hidden, order };
 }
 
-function renderLanes(lanes: Lane[], view: ViewConfig, ctx: QueryContext, warnings: string[]): {
+function renderLanes(lanes: Swimlane[], view: ViewConfig, ctx: QueryContext, warnings: string[]): {
 	rendered: RenderedLane[];
 	hidden: Task[];
 	order: Record<string, ReturnType<typeof pruneOrder>>;
@@ -77,14 +78,14 @@ function renderLanes(lanes: Lane[], view: ViewConfig, ctx: QueryContext, warning
 		const { columns, hidden: laneHidden, order: laneOrder } = bucketizeLaneTasks(lane.tasks, view, ctx, warnings);
 		hidden = hidden.concat(laneHidden);
 		order = { ...order, ...laneOrder };
-		let nested: RenderedLane[] | null = null;
-		if (lane.nested) {
-			const nestedResult = renderLanes(lane.nested, view, ctx, warnings);
-			nested = nestedResult.rendered;
-			hidden = hidden.concat(nestedResult.hidden);
-			order = { ...order, ...nestedResult.order };
+		let children: RenderedLane[] | null = null;
+		if (lane.children) {
+			const nested = renderLanes(lane.children, view, ctx, warnings);
+			children = nested.rendered;
+			hidden = hidden.concat(nested.hidden);
+			order = { ...order, ...nested.order };
 		}
-		return { id: lane.id, label: lane.label, columns, nested };
+		return { id: lane.id, label: lane.label, columns, children };
 	});
 	return { rendered, hidden, order };
 }
@@ -109,7 +110,7 @@ export function computeBoardData(
 	const filtered = allTasks.filter((t) => compiled.filter(t, ctx));
 	const visible = applyAutoHide(filtered, resolved.hideDoneAfterDays, ctx.today);
 
-	const { lanes, warnings: laneWarnings } = buildLanes(view.lanes, visible, ctx);
+	const { lanes, warnings: laneWarnings } = buildSwimlanes(view.lanes, visible, ctx);
 	warnings.push(...laneWarnings);
 
 	const { rendered, hidden, order } = renderLanes(lanes, view, ctx, warnings);

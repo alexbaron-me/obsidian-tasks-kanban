@@ -2,8 +2,8 @@
 // cannot execute (a test-tooling limitation of dnd-kit + preact/compat under vitest's module
 // resolution — the production esbuild bundle aliases correctly and is unaffected, see
 // tests/ui/Card.test.tsx's header comment for the CardView split that works around this for
-// Card itself). Column is now just a thin cell wrapper around CardList plus a quick-add button —
-// column identity (label, count, WIP, rollups) moved to ColumnHeader, see that test file — so we
+// Card itself). Column is just a thin cell wrapper around CardList plus a quick-add button —
+// column identity (label, count, WIP, rollups) lives in ColumnHeader, see that test file — so we
 // stub CardList out here to test the cell shell in isolation.
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/preact';
@@ -33,7 +33,7 @@ function ctx(): QueryContext {
 	};
 }
 
-function renderColumn(column: RenderedColumn | null, onQuickAdd = vi.fn()) {
+function renderColumn(column: RenderedColumn | null, onQuickAdd = vi.fn(), index = 0) {
 	const app = new App();
 	const taskWriter = new TaskWriter(app, new FieldWriter('emoji'), new TasksApi(app), new TasksCache(app));
 	return render(
@@ -41,6 +41,7 @@ function renderColumn(column: RenderedColumn | null, onQuickAdd = vi.fn()) {
 			app={app}
 			laneId="lane1"
 			column={column}
+			index={index}
 			chips={[]}
 			ctx={ctx()}
 			accentRules={[]}
@@ -65,7 +66,7 @@ describe('Column', () => {
 		const column: RenderedColumn = { bucket: { id: 'Doing', label: 'Doing', writeValue: null, override: {} }, tasks: [] };
 		const onQuickAdd = vi.fn();
 		renderColumn(column, onQuickAdd);
-		fireEvent.click(screen.getByRole('button', { name: /add task/i }));
+		fireEvent.click(screen.getByRole('button', { name: /add task to doing/i }));
 		expect(onQuickAdd).toHaveBeenCalledWith(column);
 	});
 
@@ -73,5 +74,20 @@ describe('Column', () => {
 		const { container } = renderColumn(null);
 		expect(container.querySelector('.tasks-board-cell--empty')).toBeTruthy();
 		expect(screen.queryByTestId('card-list-stub')).toBeFalsy();
+	});
+
+	it('draws a leading divider on every column but the first', () => {
+		const column: RenderedColumn = { bucket: { id: 'Doing', label: 'Doing', writeValue: null, override: {} }, tasks: [] };
+		const first = renderColumn(column, vi.fn(), 0);
+		expect(first.container.querySelector('.tasks-board-cell--divided')).toBeFalsy();
+		cleanup();
+
+		const second = renderColumn(column, vi.fn(), 1);
+		expect(second.container.querySelector('.tasks-board-cell--divided')).toBeTruthy();
+	});
+
+	it('draws the divider on an empty cell too, so the column rule runs unbroken', () => {
+		const { container } = renderColumn(null, vi.fn(), 1);
+		expect(container.querySelector('.tasks-board-cell--empty.tasks-board-cell--divided')).toBeTruthy();
 	});
 });

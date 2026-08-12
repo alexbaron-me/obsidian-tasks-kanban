@@ -10,9 +10,11 @@ import { CardList } from './CardList';
 export interface ColumnProps {
 	app: App;
 	laneId: string;
-	/** Null when this lane has no bucket for this column — only possible with the "auto" column
-	 * generator, whose buckets are derived per-lane (see `canonicalColumns`). */
+	/** Null when this lane has no bucket for this column — only reachable with the `auto` column
+	 * generator, whose buckets come from each lane's own tasks. */
 	column: RenderedColumn | null;
+	/** Position in the shared column set; every column but the first draws a leading hairline. */
+	index: number;
 	chips: readonly ChipKind[];
 	ctx: QueryContext;
 	accentRules: CompiledAccentRule[];
@@ -28,15 +30,16 @@ export interface ColumnProps {
 	onRemoveOrderOverride?: (task: Task) => void;
 }
 
-/** One swimlane row's cell for one board column: just the card list plus a lightweight quick-add
- * affordance. Column identity (label, aggregate count, WIP, rollups) renders once, in the shared
- * header row above every lane — see ColumnHeader. */
+/** One lane's cell for one column: the card list plus a quick-add affordance that stays out of the
+ * way until the cell is hovered or focused. */
 export function Column(props: ColumnProps) {
 	const { column } = props;
-	if (!column) return <div class="tasks-board-cell tasks-board-cell--empty" />;
+	const divided = props.index > 0 ? ' tasks-board-cell--divided' : '';
+
+	if (!column) return <div class={`tasks-board-cell tasks-board-cell--empty${divided}`} />;
 
 	return (
-		<div class="tasks-board-cell" data-bucket-id={column.bucket.id}>
+		<div class={`tasks-board-cell${divided}`} data-bucket-id={column.bucket.id}>
 			<CardList
 				app={props.app}
 				bucketId={column.bucket.id}
@@ -56,8 +59,16 @@ export function Column(props: ColumnProps) {
 				onTagClick={props.onTagClick}
 				onRemoveOrderOverride={props.onRemoveOrderOverride}
 			/>
-			<button type="button" class="tasks-board-cell__quick-add" onClick={() => props.onQuickAdd(column)}>
-				+ Add task
+			<button
+				type="button"
+				class="tasks-board-cell__add"
+				aria-label={`Add task to ${column.bucket.label}`}
+				onClick={() => props.onQuickAdd(column)}
+			>
+				<span class="tasks-board-cell__add-icon" aria-hidden="true">
+					+
+				</span>
+				Add task
 			</button>
 		</div>
 	);

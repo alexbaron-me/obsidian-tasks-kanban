@@ -264,8 +264,11 @@ export function Card(props: CardProps) {
 
 	const style: Record<string, string> = {};
 	if (props.accent) {
-		style['borderLeftColor'] = `var(${props.accent.cssVar})`;
-		style['backgroundColor'] = `rgba(var(${props.accent.cssVar}-rgb, 0,0,0), 0.08)`;
+		// An inset bar rather than a real left border, so an accented card keeps exactly the same
+		// box metrics as a plain one and rows never shift as accents come and go. The tint is mixed
+		// against the card's own background so it stays subtle in both light and dark themes.
+		style['boxShadow'] = `inset 2px 0 0 0 var(${props.accent.cssVar})`;
+		style['backgroundColor'] = `color-mix(in srgb, var(${props.accent.cssVar}) 7%, var(--background-primary))`;
 	}
 	// The moving visual is DragOverlay's clone (rendered in BoardShell, escapes column bounds via
 	// a portal); this source node stays in place and just dims, so dragging never grows the
