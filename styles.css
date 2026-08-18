@@ -117,18 +117,28 @@
 
 /* ── Board grid ───────────────────────────────────────────────────────────────────────────── */
 
-.tasks-board-grid {
+/* Scroll container: fills the shell and handles overflow scrolling. */
+.tasks-board-grid-scroll {
 	flex: 1;
 	min-height: 0;
 	overflow: auto;
+}
+
+.tasks-board-grid {
 	display: grid;
 	grid-template-columns: repeat(var(--tasks-board-column-count, 1), minmax(var(--tb-col-min), 1fr));
-	/* Rows size to their content instead of stretching to fill a short board, so lanes stack from
-	   the top rather than spreading out. */
 	align-content: start;
 	background: var(--background-primary);
-	padding-bottom: 32px;
 }
+
+/* Single-lane: grid fills the scroll container and the one content row stretches to fill it,
+   so cards cells are always full viewport height. */
+.tasks-board-grid--single-lane {
+	min-height: 100%;
+	align-content: stretch;
+	grid-template-rows: auto 1fr;
+}
+
 
 /* Dissolves this wrapper so the header cells become grid items of `.tasks-board-grid` itself and
    therefore share its column tracks. */
@@ -328,8 +338,9 @@
 .tasks-board-card-list {
 	display: flex;
 	flex-direction: column;
+	flex: 1;
 	gap: var(--tb-card-gap);
-	min-height: 18px;
+	min-height: 48px;
 	padding: var(--tb-card-gap) var(--tb-gutter);
 }
 
@@ -340,6 +351,8 @@
 }
 
 .tasks-board-cell__add {
+	position: sticky;
+	bottom: var(--tb-card-gap);
 	display: flex;
 	align-items: center;
 	gap: 4px;
@@ -353,8 +366,6 @@
 	font-size: var(--font-ui-smaller);
 	text-align: left;
 	cursor: pointer;
-	/* Hidden until the cell is hovered or focused: on a dense board these would otherwise add a
-	   row of visual noise under every column of every lane. */
 	opacity: 0;
 	transition: opacity 100ms ease, background-color 100ms ease;
 }
