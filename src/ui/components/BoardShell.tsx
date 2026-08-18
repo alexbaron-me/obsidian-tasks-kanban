@@ -1,4 +1,4 @@
-import type { App, TFile } from 'obsidian';
+﻿import type { App, TFile } from 'obsidian';
 import { Notice } from 'obsidian';
 import { useMemo, useState } from 'preact/hooks';
 import { createPortal } from 'preact/compat';
@@ -269,23 +269,30 @@ export function BoardShell(props: BoardShellProps) {
 		// Record manual order only for non-DONE writes (a DONE write replaces the line via the
 		// API and the task naturally drops out of this bucket on the next cache refresh).
 		if (targetColumn.bucket.writeValue?.kind !== 'status' || !resolveStatusBySymbol(props.statuses, targetColumn.bucket.writeValue.symbol) || !['DONE', 'CANCELLED'].includes(resolveStatusBySymbol(props.statuses, targetColumn.bucket.writeValue.symbol)!.type)) {
-			let id = task.id;
-			if (!id) {
-				if (!props.globalSettings.idConfirmDismissed) {
-					const { proceed, dontAskAgain } = await new IdConfirmModal(props.app).ask();
-					if (dontAskAgain) {
-						props.globalSettings.idConfirmDismissed = true;
-						void props.saveGlobalSettings();
+			// Record order only for same-column reorders, or cross-column drops into a column
+			// that already uses custom ordering (position card immediately, no dialog).
+			const targetHasCustomSort = (view.order[bucketId] ?? []).length > 0;
+			if (sameColumn || targetHasCustomSort) {
+				let id = task.id;
+				if (!id) {
+					// Dialog only for same-column reorders — that's when the user is opting into
+					// manual sort for this column. Cross-column drops silently assign an id.
+					if (sameColumn && !props.globalSettings.idConfirmDismissed) {
+						const { proceed, dontAskAgain } = await new IdConfirmModal(props.app).ask();
+						if (dontAskAgain) {
+							props.globalSettings.idConfirmDismissed = true;
+							void props.saveGlobalSettings();
+						}
+						if (!proceed) return;
 					}
-					if (!proceed) return;
+					id = generateTaskId(props.allTasks);
+					await props.taskWriter.setId(task, id);
 				}
-				id = generateTaskId(props.allTasks);
-				await props.taskWriter.setId(task, id);
+				const reordered = newOrder.map((t) => (t === task ? { ...t, id } : t));
+				const override = recordOrder(reordered, insertAt);
+				const existing = (view.order[bucketId] ?? []).filter((o) => o.id !== id);
+				props.boardModel.setOrder(viewIndex, bucketId, [...existing, override]);
 			}
-			const reordered = newOrder.map((t) => (t === task ? { ...t, id } : t));
-			const override = recordOrder(reordered, insertAt);
-			const existing = (view.order[bucketId] ?? []).filter((o) => o.id !== id);
-			props.boardModel.setOrder(viewIndex, bucketId, [...existing, override]);
 		}
 	}
 

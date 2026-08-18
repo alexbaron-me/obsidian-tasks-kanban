@@ -1,6 +1,6 @@
 {
 	"name": "tasks-board",
-	"version": "0.1.4",
+	"version": "0.1.5",
 	"description": "Kanban boards over your Obsidian Tasks.",
 	"main": "main.js",
 	"type": "module",
@@ -35,5 +35,8 @@
 		"chrono-node": "^2.10.1",
 		"preact": "^10.29.8",
 		"yaml": "^2.9.0"
+	},
+	"allowScripts": {
+		"esbuild@0.25.5": true
 	}
 }
