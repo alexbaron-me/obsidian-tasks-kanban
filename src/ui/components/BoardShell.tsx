@@ -55,6 +55,7 @@ function resolveStatusBySymbol(statuses: readonly TaskStatus[], symbol: string):
 	return statuses.find((s) => s.symbol === symbol) ?? null;
 }
 
+
 function taskFromActive(active: unknown): Task | undefined {
 	const withData = active as { data?: { current?: unknown } };
 	const rawData: unknown = withData.data?.current;
@@ -103,6 +104,7 @@ export function BoardShell(props: BoardShellProps) {
 		}),
 		[props.allTasks, props.boardPath, props.containingFilePath, view?.name, props.today],
 	);
+
 
 	const resolved = resolveSettings(props.globalSettings, boardFile.settings, view?.settings ?? {});
 	const accentRules = useMemo(() => compileAccentRules(props.globalSettings.accentRules), [props.globalSettings.accentRules]);
@@ -363,41 +365,43 @@ export function BoardShell(props: BoardShellProps) {
 				onDragCancel={handleDragCancel}
 				onDragEnd={(e: DragEndEvent) => void handleDragEnd(e)}
 			>
-				<div
-					class="tasks-board-grid"
-					style={{ '--tasks-board-column-count': String(columns.length) }}
-				>
-					{/* `display: contents` — the header cells are grid items of the board grid itself,
-					    so they line up with every lane's cells without an intermediate box. */}
-					<div class="tasks-board-grid__header">
-						{columns.map((col, index) => (
-							<ColumnHeader key={col.id} column={col} index={index} tasks={columnTasks(rows, col.id)} />
+				<div class="tasks-board-grid-scroll">
+					<div
+						class={`tasks-board-grid${showLaneHeaders ? '' : ' tasks-board-grid--single-lane'}`}
+						style={{ '--tasks-board-column-count': String(columns.length) }}
+					>
+						{/* `display: contents` — the header cells are grid items of the board grid itself,
+						    so they line up with every lane's cells without an intermediate box. */}
+						<div class="tasks-board-grid__header">
+							{columns.map((col, index) => (
+								<ColumnHeader key={col.id} column={col} index={index} tasks={columnTasks(rows, col.id)} />
+							))}
+						</div>
+						{rows.map((row) => (
+							<Swimlane
+								key={`${row.lane.id}:${row.kind}:${row.depth}`}
+								app={props.app}
+								lane={row.lane}
+								depth={row.depth}
+								kind={row.kind}
+								showHeader={showLaneHeaders}
+								columns={columns}
+								chips={view.card.chips}
+								ctx={ctx}
+								accentRules={accentRules}
+								clickAction={resolved.clickAction}
+								taskWriter={props.taskWriter}
+								postponeField={resolved.postponeField}
+								globalFilterTag={globalFilterTag}
+								collapseDefault={resolved.laneCollapseDefault}
+								onToggleDone={(t) => void toggleDone(t)}
+								onEdit={(t) => void editTask(t)}
+								onOpenFile={openFile}
+								onQuickAdd={(lId, bucketId) => void quickAdd(lId, bucketId)}
+								onRemoveOrderOverride={removeOrderOverride}
+							/>
 						))}
 					</div>
-					{rows.map((row) => (
-						<Swimlane
-							key={`${row.lane.id}:${row.kind}:${row.depth}`}
-							app={props.app}
-							lane={row.lane}
-							depth={row.depth}
-							kind={row.kind}
-							showHeader={showLaneHeaders}
-							columns={columns}
-							chips={view.card.chips}
-							ctx={ctx}
-							accentRules={accentRules}
-							clickAction={resolved.clickAction}
-							taskWriter={props.taskWriter}
-							postponeField={resolved.postponeField}
-							globalFilterTag={globalFilterTag}
-							collapseDefault={resolved.laneCollapseDefault}
-							onToggleDone={(t) => void toggleDone(t)}
-							onEdit={(t) => void editTask(t)}
-							onOpenFile={openFile}
-							onQuickAdd={(lId, bucketId) => void quickAdd(lId, bucketId)}
-							onRemoveOrderOverride={removeOrderOverride}
-						/>
-					))}
 				</div>
 				{createPortal(
 					// dnd-kit's DragOverlay positions itself with `position: fixed` but renders
